@@ -151,6 +151,18 @@ class GanttVisualization(core.Visualization):
             ylim=(jobset.res_bounds.inf - 1, jobset.res_bounds.sup + 2),
         )
 
+    def buildDf(self, df, res_bounds): # TODO This might need some additional tweaking
+        df = df.loc[:, self._columns]  # copy just what is needed
+        self._adapt(df)  # extract the data required for the visualization
+        self._customize_layout()  # prepare the layout for displaying the data
+        self._draw(df)  # do the painting job
+
+        # tweak boundaries to match the studied jobset
+        self._ax.set(
+            xlim=(df.submission_time.min(), df.finish_time.max()),
+            ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
+        )
+
 
 
 class DiffGanttVisualization(GanttVisualization):
@@ -217,6 +229,27 @@ def plot_gantt(jobset, *, title='Gantt chart', **kwargs):
     plot = layout.inject(GanttVisualization, spskey='all', title=title)
     utils.bulksetattr(plot, **kwargs)
     plot.build(jobset)
+    layout.show()
+
+
+def plot_gantt_df(df, res_bounds,*, title='Gantt chart', **kwargs):
+    """
+    Helper function to create a Gantt chart of a workload.
+
+    :param jobset: The jobset under study.
+    :type jobset: ``JobSet``
+
+    :param title: The title of the window.
+    :type title: ``str``
+
+    :param \**kwargs:
+        The keyword arguments to be fed to the constructor of the visualization
+        class.
+    """
+    layout = core.SimpleLayout(wtitle=title)
+    plot = layout.inject(GanttVisualization, spskey='all', title=title)
+    utils.bulksetattr(plot, **kwargs)
+    plot.buildDf(df, res_bounds)
     layout.show()
 
 
