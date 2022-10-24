@@ -119,7 +119,7 @@ class GanttVisualization(core.Visualization):
     def round_robin_map(job, palette):
         return palette[job['uniq_num'] % len(palette)]
 
-    def _draw(self, df, resvStart=None,resvExecTime=None):
+    def _draw(self, df, resvStart=None,resvExecTime=None,resvNodes=None):
         def _plot_job(job):
             x0 = job['starting_time']
             duration = job['execution_time']
@@ -136,10 +136,25 @@ class GanttVisualization(core.Visualization):
                 )
                 self._ax.add_artist(rect)
                 # self._annotate(rect, self.labeler(job))
+        # if (resvStart != None and resvExecTime != None and resvNodes == None):
+        #     height = 1490
+        #     startNode=0
+        #     rect = matplotlib.patches.Rectangle(
+        #         (resvStart, startNode),
+        #         resvExecTime,
+        #         height,
+        #         alpha = self.alpha,
+        #         facecolor='#FF0000',
+        #         edgecolor='black',
+        #         linewidth=0.5
+        #     )
         if (resvStart != None and resvExecTime != None):
-            height = 1490
+            resvNodes = str(resvNodes)
+            resvNodes = resvNodes.split("-")
+            startNode = int(resvNodes[0])
+            height = int(resvNodes[1])-int(resvNodes[0])
             rect = matplotlib.patches.Rectangle(
-                (resvStart, 0),
+                (resvStart, startNode),
                 resvExecTime,
                 height,
                 alpha = self.alpha,
@@ -148,6 +163,23 @@ class GanttVisualization(core.Visualization):
                 linewidth=0.5
             )
             self._ax.add_artist(rect)
+        # if (resvStart != None and resvExecTime != None and resvNodes != None):
+        #     height = 1490
+        #     startNode=0
+        #     if (resvNodes != None):
+        #         resvNodes = resvNodes.split("-")
+        #         startNode = int(resvNodes[0])
+        #         height = int(resvNodes[1])-int(resvNodes[0])
+        #     rect = matplotlib.patches.Rectangle(
+        #         (resvStart, startNode),
+        #         resvExecTime,
+        #         height,
+        #         alpha = self.alpha,
+        #         facecolor='#FF0000',
+        #         edgecolor='black',
+        #         linewidth=0.5
+        #     )
+        #     self._ax.add_artist(rect)
         df.apply(_plot_job, axis='columns')
 
     def build(self, jobset):
@@ -162,11 +194,11 @@ class GanttVisualization(core.Visualization):
             ylim=(jobset.res_bounds.inf - 1, jobset.res_bounds.sup + 2),
         )
 
-    def buildDf(self, df, res_bounds, resvStart=None, resvExecTime=None): # TODO This might need some additional tweaking
+    def buildDf(self, df, res_bounds, resvStart=None, resvExecTime=None, resvNodes=None): # TODO This might need some additional tweaking
         df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
-        self._draw(df, resvStart, resvExecTime)  # do the painting job
+        self._draw(df, resvStart, resvExecTime, resvNodes)  # do the painting job
 
         # tweak boundaries to match the studied jobset
         self._ax.set(
@@ -242,7 +274,7 @@ def plot_gantt(jobset, *, title='Gantt chart', **kwargs):
     layout.show()
 
 
-def plot_gantt_df(df, res_bounds,*, title='Gantt chart', resvStart=None,resvExecTime=None, **kwargs):
+def plot_gantt_df(df, res_bounds,*, title='Gantt chart', resvStart=None,resvExecTime=None,resvNodes=None, **kwargs):
     """
     Helper function to create a Gantt chart of a workload.
 
@@ -259,7 +291,7 @@ def plot_gantt_df(df, res_bounds,*, title='Gantt chart', resvStart=None,resvExec
     layout = core.SimpleLayout(wtitle=title)
     plot = layout.inject(GanttVisualization, spskey='all', title=title)
     utils.bulksetattr(plot, **kwargs)
-    plot.buildDf(df, res_bounds, resvStart, resvExecTime)
+    plot.buildDf(df, res_bounds, resvStart, resvExecTime,resvNodes)
     layout.show()
 
 
