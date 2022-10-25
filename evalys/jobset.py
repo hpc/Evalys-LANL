@@ -129,6 +129,10 @@ class JobSet(object):
         df = pd.read_csv(filename, converters=cls.__converters)
         return cls(df, resource_bounds=resource_bounds)
 
+    @classmethod
+    def from_df(cls, df, resource_bounds=None):
+        return cls(df, resource_bounds=resource_bounds)
+
     def to_csv(self, filename):
         """ Export this jobset to a csv file with a ',' as separator.
 
@@ -192,23 +196,29 @@ class JobSet(object):
         self._utilisation = None
 
     def plot(self, normalize=False, with_details=False, time_scale=False,
-             title=None):
-        nrows = 2
+             title=None, with_gantt=False, reservationStart=None, reservationExec=None, reservationNodes=None):
+        nrows = 1
         if with_details:
             nrows = nrows + 2
+        if with_gantt:
+            nrows = nrows + 1
         fig, axe = plt.subplots(nrows=nrows, sharex=True, figsize=(12, 8))
         if title:
             fig.suptitle(title, fontsize=16)
         vleg.plot_load(self.utilisation, self.MaxProcs,
                        legend_label="utilisation", ax=axe[0],
                        normalize=normalize, time_scale=time_scale)
-        vleg.plot_load(self.queue, self.MaxProcs,
-                       legend_label="queue", ax=axe[1], normalize=normalize,
-                       time_scale=time_scale)
+        # vleg.plot_load(self.queue, self.MaxProcs,
+        #                legend_label="queue", ax=axe[1], normalize=normalize,
+        #                time_scale=time_scale)
         if with_details:
-            vleg.plot_job_details(self.df, self.MaxProcs, ax=axe[2],
+            vleg.plot_job_details(self.df, self.MaxProcs, ax=axe[1],
                                   time_scale=time_scale)
-            vleg.plot_gantt(self, ax=axe[3], time_scale=time_scale)
+            vleg.plot_gantt(self, ax=axe[2], time_scale=time_scale)
+        if with_gantt:
+            vleg.plot_gantt(self, ax=axe[1], time_scale=time_scale, labels=False, resvStart=reservationStart, resvExecTime=reservationExec, resvNodes=reservationNodes)
+
+
 
     def detailed_utilisation(self):
         df = self.free_intervals()

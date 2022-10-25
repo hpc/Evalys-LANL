@@ -80,7 +80,10 @@ def plot_gantt(jobset, ax=None, title="Gantt chart",
                labels=True, palette=None, alpha=0.4,
                time_scale=False,
                color_function=None,
-               label_function=None):
+               label_function=None,
+               resvStart=None,
+               resvExecTime=None,
+               resvNodes=None):
     # Palette generation if needed
     if palette is None:
         palette = core.generate_palette(8)
@@ -130,6 +133,21 @@ def plot_gantt(jobset, ax=None, title="Gantt chart",
             if labels:
                 if job.name in labeled_jobs:
                     annotate(ax, rect, str(label_function(job)))
+            ax.add_artist(rect)
+    if (resvStart != None and resvExecTime != None):
+            resvNodes = str(resvNodes)
+            resvNodes = resvNodes.split("-")
+            startNode = int(resvNodes[0])
+            height = int(resvNodes[1])-int(resvNodes[0])
+            rect = matplotlib.patches.Rectangle(
+                (resvStart, startNode),
+                resvExecTime,
+                height,
+                alpha = alpha,
+                facecolor='#FF0000',
+                edgecolor='black',
+                linewidth=0.5
+            )
             ax.add_artist(rect)
 
     # apply for all jobs

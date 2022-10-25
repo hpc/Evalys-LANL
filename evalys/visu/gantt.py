@@ -194,17 +194,32 @@ class GanttVisualization(core.Visualization):
             ylim=(jobset.res_bounds.inf - 1, jobset.res_bounds.sup + 2),
         )
 
-    def buildDf(self, df, res_bounds, resvStart=None, resvExecTime=None, resvNodes=None): # TODO This might need some additional tweaking
+    def buildDf(self, df, res_bounds, windowStartTime, windowFinishTime, resvStart=None, resvExecTime=None, resvNodes=None): # TODO This might need some additional tweaking
         df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
         self._draw(df, resvStart, resvExecTime, resvNodes)  # do the painting job
 
         # tweak boundaries to match the studied jobset
+        # try:
+
+        # Default axis setting method
+        # self._ax.set(
+        #     xlim=(df.submission_time.min(), df.finish_time.max()),
+        #     ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
+        # )
+
+        # My axis setting method
         self._ax.set(
-            xlim=(df.submission_time.min(), df.finish_time.max()),
+            xlim=(windowStartTime, windowFinishTime),
             ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
         )
+
+        # except:
+        #     print("Assumption of axis limits failed, using default values!")
+        #     self._ax.set(
+        #         xlim=()
+        #     )
 
 
 class DiffGanttVisualization(GanttVisualization):
@@ -274,7 +289,7 @@ def plot_gantt(jobset, *, title='Gantt chart', **kwargs):
     layout.show()
 
 
-def plot_gantt_df(df, res_bounds,*, title='Gantt chart', resvStart=None,resvExecTime=None,resvNodes=None, **kwargs):
+def plot_gantt_df(df, res_bounds,windowStartTime, windowFinishTime,*, title='Gantt chart', resvStart=None,resvExecTime=None,resvNodes=None,**kwargs):
     """
     Helper function to create a Gantt chart of a workload.
 
@@ -291,8 +306,10 @@ def plot_gantt_df(df, res_bounds,*, title='Gantt chart', resvStart=None,resvExec
     layout = core.SimpleLayout(wtitle=title)
     plot = layout.inject(GanttVisualization, spskey='all', title=title)
     utils.bulksetattr(plot, **kwargs)
-    plot.buildDf(df, res_bounds, resvStart, resvExecTime,resvNodes)
+    plot.buildDf(df, res_bounds,windowStartTime,windowFinishTime, resvStart, resvExecTime,resvNodes)
     layout.show()
+
+    
 
 
 def plot_diff_gantt(jobsets, *, title='Gantt charts comparison', **kwargs):
