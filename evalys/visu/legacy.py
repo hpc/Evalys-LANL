@@ -726,6 +726,9 @@ def plot_binned_load(
     loadLong,
     loadLarge,
     nb_resources=None,
+    nb_resourcesSmall=None,
+    nb_resourcesLong=None,
+    nb_resourcesLarge=None,
     ax=None,
     normalize=False,
     time_scale=False,
@@ -782,32 +785,32 @@ def plot_binned_load(
     ax.margins(x=0.1, y=0.1)
 
     # plot load
-    u.load.plot(drawstyle="steps-post", ax=ax, label=legend_label)
-    l.load.plot(drawstyle="steps-post", ax=ax, label=legend_label)
-    x.load.plot(drawstyle="steps-post", ax=ax, label=legend_label)
+    u.load.plot(drawstyle="steps-post", ax=ax, label="Small job " + legend_label)
+    l.load.plot(drawstyle="steps-post", ax=ax, label="Long lob " + legend_label)
+    x.load.plot(drawstyle="steps-post", ax=ax, label="Large job" + legend_label)
 
     # plot a line for max available area
-    if nb_resources and not normalize:
+    if nb_resourcesSmall and nb_resourcesLong and nb_resourcesLarge and not normalize:
         ax.plot(
             [u.index[0], u.index[-1]],
             [nb_resourcesSmall, nb_resourcesSmall],
             linestyle="-",
             linewidth=2,
-            label="Maximum resources ({})".format(nb_resourcesSmall),
+            label="Maximum resources for Small Jobs ({})".format(nb_resourcesSmall),
         )
         ax.plot(
             [l.index[0], l.index[-1]],
             [nb_resourcesLong, nb_resourcesLong],
             linestyle="-",
             linewidth=2,
-            label="Maximum resources ({})".format(nb_resourcesLong),
+            label="Maximum resources for Long Jobs ({})".format(nb_resourcesLong),
         )
         ax.plot(
             [x.index[0], x.index[-1]],
             [nb_resourcesLarge, nb_resourcesLarge],
             linestyle="-",
             linewidth=2,
-            label="Maximum resources ({})".format(nb_resourcesLarge),
+            label="Maximum resources for Large Jobs ({})".format(nb_resourcesLarge),
         )
 
     # plot a line for mean utilisation
@@ -816,21 +819,21 @@ def plot_binned_load(
         [meanSmall, meanSmall],
         linestyle="--",
         linewidth=1,
-        label="Mean {0} ({1:.2f})".format(legend_label, meanSmall),
+        label="Mean {0} for Small Jobs ({1:.2f})".format(legend_label, meanSmall),
     )
     ax.plot(
         [l.index[0], l.index[-1]],
         [meanLong, meanLong],
         linestyle="--",
         linewidth=1,
-        label="Mean {0} ({1:.2f})".format(legend_label, meanLong),
+        label="Mean {0} for Long Jobs ({1:.2f})".format(legend_label, meanLong),
     )
     ax.plot(
         [x.index[0], x.index[-1]],
         [meanLarge, meanLarge],
         linestyle="--",
         linewidth=1,
-        label="Mean {0} ({1:.2f})".format(legend_label, meanLarge),
+        label="Mean {0} for Large Jobs ({1:.2f})".format(legend_label, meanLarge),
     )
     sns.rugplot(u.load[u.load == 0].index, ax=ax, color="r")
     sns.rugplot(l.load[l.load == 0].index, ax=ax, color="r")

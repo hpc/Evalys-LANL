@@ -244,8 +244,8 @@ class JobSet(object):
         elif binned:
             vleg.plot_binned_load(
                 self.utilisation,
-                longJs.utilization,  # TODO Uh oh
-                largeJs.utilization,
+                longJs.utilisation,  # TODO Uh oh
+                largeJs.utilisation,
                 self.MaxProcs,
                 legend_label="utilisation",
                 ax=axe[0],
