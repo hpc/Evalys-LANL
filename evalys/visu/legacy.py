@@ -786,8 +786,8 @@ def plot_binned_load(
 
     # plot load
     u.load.plot(drawstyle="steps-post", ax=ax, label="Small job " + legend_label)
-    l.load.plot(drawstyle="steps-post", ax=ax, label="Long lob " + legend_label)
-    x.load.plot(drawstyle="steps-post", ax=ax, label="Large job" + legend_label)
+    l.load.plot(drawstyle="steps-post", ax=ax, label="Long job " + legend_label)
+    x.load.plot(drawstyle="steps-post", ax=ax, label="Large job " + legend_label)
 
     # plot a line for max available area
     if nb_resourcesSmall and nb_resourcesLong and nb_resourcesLarge and not normalize:
@@ -852,8 +852,10 @@ def plot_binned_load(
     # https://github.com/mwaskom/seaborn/issues/1071
 
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set(ylim=(-10, loadLarge.load.max() + 10))
     ax.grid(True)
     ax.legend()
+    ax.set_title("Cluster Utilization by Job Type")
     ax.set_ylabel("Machines")
 
 

@@ -225,10 +225,12 @@ class JobSet(object):
         binned=False,
     ):
         nrows = 1
-        if with_details:
+        if with_details and not binned:
             nrows = nrows + 2
-        if with_gantt:
+        if with_gantt and not binned:
             nrows = nrows + 1
+        if with_gantt and binned:
+            nrows = nrows + 3
         fig, axe = plt.subplots(nrows=nrows, sharex=True, figsize=(12, 8))
         if title:
             fig.suptitle(title, fontsize=16)
@@ -242,9 +244,10 @@ class JobSet(object):
                 time_scale=time_scale,
             )
         elif binned:
+            fig.set_size_inches(30, 20)
             vleg.plot_binned_load(
                 self.utilisation,
-                longJs.utilisation,  # TODO Uh oh
+                longJs.utilisation,
                 largeJs.utilisation,
                 self.MaxProcs,
                 legend_label="utilisation",
@@ -260,20 +263,45 @@ class JobSet(object):
                 self.df, self.MaxProcs, ax=axe[1], time_scale=time_scale
             )
             vleg.plot_gantt(self, ax=axe[2], time_scale=time_scale)
-        if with_gantt and not windowFinishTime and not windowStartTime:
+        if with_gantt and not binned:
             vleg.plot_gantt(
                 self,
-                ax=axe[1],
+                ax=axe[1],  # TODO Add title here
                 time_scale=time_scale,
                 labels=False,
                 resvStart=reservationStart,
                 resvExecTime=reservationExec,
                 resvNodes=reservationNodes,
             )
-        elif with_gantt and windowFinishTime and windowStartTime:
+        elif with_gantt and binned:
             vleg.plot_gantt(
                 self,
                 ax=axe[1],
+                title="Small jobs",
+                time_scale=time_scale,
+                labels=False,
+                resvStart=reservationStart,
+                resvExecTime=reservationExec,
+                resvNodes=reservationNodes,
+                windowStartTime=windowStartTime,
+                windowFinishTime=windowFinishTime,
+            )
+            vleg.plot_gantt(
+                longJs,
+                ax=axe[2],
+                title="Long jobs",
+                time_scale=time_scale,
+                labels=False,
+                resvStart=reservationStart,
+                resvExecTime=reservationExec,
+                resvNodes=reservationNodes,
+                windowStartTime=windowStartTime,
+                windowFinishTime=windowFinishTime,
+            )
+            vleg.plot_gantt(
+                largeJs,
+                ax=axe[3],
+                title="Large Jobs",
                 time_scale=time_scale,
                 labels=False,
                 resvStart=reservationStart,
