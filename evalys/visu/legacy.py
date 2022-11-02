@@ -785,9 +785,15 @@ def plot_binned_load(
     ax.margins(x=0.1, y=0.1)
 
     # plot load
-    u.load.plot(drawstyle="steps-post", ax=ax, label="Small job " + legend_label)
-    l.load.plot(drawstyle="steps-post", ax=ax, label="Long job " + legend_label)
-    x.load.plot(drawstyle="steps-post", ax=ax, label="Large job " + legend_label)
+    u.load.plot(
+        drawstyle="steps-post", ax=ax, linewidth=2, label="Small job " + legend_label
+    )
+    l.load.plot(
+        drawstyle="steps-post", ax=ax, linewidth=2, label="Long job " + legend_label
+    )
+    x.load.plot(
+        drawstyle="steps-post", ax=ax, linewidth=2, label="Large job " + legend_label
+    )
 
     # plot a line for max available area
     if nb_resourcesSmall and nb_resourcesLong and nb_resourcesLarge and not normalize:
@@ -795,21 +801,21 @@ def plot_binned_load(
             [u.index[0], u.index[-1]],
             [nb_resourcesSmall, nb_resourcesSmall],
             linestyle="-",
-            linewidth=2,
+            linewidth=4,
             label="Maximum resources for Small Jobs ({})".format(nb_resourcesSmall),
         )
         ax.plot(
             [l.index[0], l.index[-1]],
             [nb_resourcesLong, nb_resourcesLong],
             linestyle="-",
-            linewidth=2,
+            linewidth=4,
             label="Maximum resources for Long Jobs ({})".format(nb_resourcesLong),
         )
         ax.plot(
             [x.index[0], x.index[-1]],
             [nb_resourcesLarge, nb_resourcesLarge],
             linestyle="-",
-            linewidth=2,
+            linewidth=4,
             label="Maximum resources for Large Jobs ({})".format(nb_resourcesLarge),
         )
 

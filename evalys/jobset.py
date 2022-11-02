@@ -1,12 +1,17 @@
 # coding: utf-8
 from __future__ import unicode_literals, print_function
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from evalys import visu
 import evalys.visu.legacy as vleg
 from procset import ProcInt, ProcSet
 from evalys.metrics import compute_load, load_mean, fragmentation_reis, fragmentation
+import warnings
+
+warnings.simplefilter(action="ignore", category=FutureWarning)
+import pandas as pd
+
+# FIXME Fix this
 
 
 class JobSet(object):
@@ -223,18 +228,21 @@ class JobSet(object):
         windowStartTime=None,
         windowFinishTime=None,
         binned=False,
+        average=False,
     ):
         nrows = 1
-        if with_details and not binned:
+        if with_details and not binned and not average:
             nrows = nrows + 2
-        if with_gantt and not binned:
+        if with_gantt and not binned and not average:
             nrows = nrows + 1
-        if with_gantt and binned:
+        if with_gantt and binned and not average:
             nrows = nrows + 3
-        fig, axe = plt.subplots(nrows=nrows, sharex=True, figsize=(12, 8))
+        fig, axe = plt.subplots(
+            nrows=nrows, sharex=True, figsize=(12, 8)
+        )  # FIXME I can override figsize here
         if title:
             fig.suptitle(title, fontsize=16)
-        if not binned:
+        if not binned and not average:
             vleg.plot_load(
                 self.utilisation,
                 self.MaxProcs,
@@ -243,8 +251,40 @@ class JobSet(object):
                 normalize=normalize,
                 time_scale=time_scale,
             )
+        elif average:
+            fig.set_size_inches(30, 20)  # FIXME address this
+            # TODO Insert my compute_load call here
+            #! Maybe this isn't it. Try just computing load manually, or charting directly from those load outputs?
+            # self.utilisation = compute_load(
+            #     self.df,
+            #     col_begin="starting_time",
+            #     col_end="finish_time",
+            #     col_cumsum="proc_alloc",
+            # )
+            # longJs.utilisation = compute_load(
+            #     longJs.df,
+            #     col_begin="starting_time",
+            #     col_end="finish_time",
+            #     col_cumsum="proc_alloc",
+            # )
+            # largeJs.utilisation = compute_load(
+            #     largeJs.df,
+            #     col_begin="starting_time",
+            #     col_end="finish_time",
+            #     col_cumsum="proc_alloc",
+            # )
+
+            vleg.plot_binned_load(
+                self.utilisation,
+                longJs.utilisation,
+                largeJs.utilisation,
+                self.MaxProcs,
+                legend_label="utilisation",
+                normalize=normalize,
+                time_scale=time_scale,
+            )
         elif binned:
-            fig.set_size_inches(30, 20)
+            fig.set_size_inches(30, 20)  # FIXME address this
             vleg.plot_binned_load(
                 self.utilisation,
                 longJs.utilisation,
