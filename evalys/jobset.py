@@ -229,6 +229,8 @@ class JobSet(object):
         windowFinishTime=None,
         binned=False,
         average=False,
+        divisor=None,
+        xAxisTermination=None,
     ):
         nrows = 1
         if with_details and not binned and not average:
@@ -252,27 +254,14 @@ class JobSet(object):
                 time_scale=time_scale,
             )
         elif average:
-            fig.set_size_inches(30, 20)  # FIXME address this
-            # TODO Insert my compute_load call here
-            #! Maybe this isn't it. Try just computing load manually, or charting directly from those load outputs?
-            # self.utilisation = compute_load(
-            #     self.df,
-            #     col_begin="starting_time",
-            #     col_end="finish_time",
-            #     col_cumsum="proc_alloc",
-            # )
-            # longJs.utilisation = compute_load(
-            #     longJs.df,
-            #     col_begin="starting_time",
-            #     col_end="finish_time",
-            #     col_cumsum="proc_alloc",
-            # )
-            # largeJs.utilisation = compute_load(
-            #     largeJs.df,
-            #     col_begin="starting_time",
-            #     col_end="finish_time",
-            #     col_cumsum="proc_alloc",
-            # )
+            fig.set_size_inches(20, 40)  # FIXME address this
+            overallDf = pd.concat([self.df, longJs.df, largeJs.df])
+            overallUtilization = compute_load(
+                overallDf,
+                col_begin="starting_time",
+                col_end="finish_time",
+                col_cumsum="proc_alloc",
+            )
 
             vleg.plot_binned_load(
                 self.utilisation,
@@ -282,6 +271,11 @@ class JobSet(object):
                 legend_label="utilisation",
                 normalize=normalize,
                 time_scale=time_scale,
+                divisor=divisor,
+                loadOverall=overallUtilization,
+                # windowStartTime=windowStartTime,
+                # windowFinishTime=windowFinishTime,
+                xAxisTermination=xAxisTermination,
             )
         elif binned:
             fig.set_size_inches(30, 20)  # FIXME address this

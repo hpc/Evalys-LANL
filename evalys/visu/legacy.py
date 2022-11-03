@@ -735,6 +735,11 @@ def plot_binned_load(
     legend_label="Load",
     UnixStartTime=0,
     TimeZoneString="UTC",
+    divisor=None,
+    loadOverall=None,
+    # windowStartTime=None,
+    # windowFinishTime=None,
+    xAxisTermination=None,
 ):
     """
     Plots the number of used resources against time
@@ -742,31 +747,52 @@ def plot_binned_load(
     `nb_resources`
     """
     meanSmall = metrics.load_mean(loadSmall)
+    meanSmallRaw = metrics.load_mean(loadSmall)
     u = loadSmall.copy()
+    uu = loadSmall.copy()
     meanLong = metrics.load_mean(loadLong)
+    meanLongRaw = metrics.load_mean(loadLong)
     l = loadLong.copy()
+    ll = loadLong.copy()
     meanLarge = metrics.load_mean(loadLarge)
+    meanLargeRaw = metrics.load_mean(loadLarge)
     x = loadLarge.copy()
+    xx = loadLarge.copy()
+    if divisor != None:
+        meanOverall = metrics.load_mean(loadOverall)
+        meanOverallRaw = metrics.load_mean(loadOverall)
+        o = loadOverall.copy()
+        oo = loadOverall.copy()
 
     if time_scale:
         # make the time index a column
         u = u.reset_index()
         l = l.reset_index()
         x = x.reset_index()
+        uu = uu.reset_index()
+        ll = ll.reset_index()
+        xx = xx.reset_index()
 
         # convert timestamp to datetime
         u.index = pd.to_datetime(u["time"] + UnixStartTime, unit="s")
         l.index = pd.to_datetime(l["time"] + UnixStartTime, unit="s")
         x.index = pd.to_datetime(x["time"] + UnixStartTime, unit="s")
+        uu.index = pd.to_datetime(uu["time"] + UnixStartTime, unit="s")
+        ll.index = pd.to_datetime(ll["time"] + UnixStartTime, unit="s")
+        xx.index = pd.to_datetime(xx["time"] + UnixStartTime, unit="s")
 
         u.index.tz_localize("UTC").tz_convert(TimeZoneString)
         l.index.tz_localize("UTC").tz_convert(TimeZoneString)
         x.index.tz_localize("UTC").tz_convert(TimeZoneString)
+        uu.index.tz_localize("UTC").tz_convert(TimeZoneString)
+        ll.index.tz_localize("UTC").tz_convert(TimeZoneString)
+        xx.index.tz_localize("UTC").tz_convert(TimeZoneString)
 
     if normalize and nb_resources is None:
         nb_resourcesSmall = u.load.max()
         nb_resourcesLong = l.load.max()
         nb_resourcesLarge = x.load.max()
+        # FIXME this isnt ready for the double line set
 
     if normalize:
         u.load = u.load / nb_resourcesSmall
@@ -776,6 +802,17 @@ def plot_binned_load(
         meanSmall = meanSmall / nb_resourcesSmall
         meanLong = meanLong / nb_resourcesLong
         meanLarge = meanLarge / nb_resourcesLarge
+
+    if divisor != None:
+        u.load = u.load / divisor
+        l.load = l.load / divisor
+        x.load = x.load / divisor
+        o.load = o.load / divisor
+
+        meanSmall = meanSmall / divisor
+        meanLong = meanLong / divisor
+        meanLarge = meanLarge / divisor
+        meanOverall = meanOverall / divisor
 
     # get an axe if not provided
     if ax is None:
@@ -794,7 +831,34 @@ def plot_binned_load(
     x.load.plot(
         drawstyle="steps-post", ax=ax, linewidth=2, label="Large job " + legend_label
     )
-
+    if divisor != None:
+        o.load.plot(
+            drawstyle="steps-post", ax=ax, linewidth=2, label="Overall " + legend_label
+        )
+        uu.load.plot(
+            drawstyle="steps-post",
+            ax=ax,
+            linewidth=2,
+            label="Small jobs raw " + legend_label,
+        )
+        ll.load.plot(
+            drawstyle="steps-post",
+            ax=ax,
+            linewidth=2,
+            label="Long jobs raw " + legend_label,
+        )
+        xx.load.plot(
+            drawstyle="steps-post",
+            ax=ax,
+            linewidth=2,
+            label="Large jobs raw " + legend_label,
+        )
+        oo.load.plot(
+            drawstyle="steps-post",
+            ax=ax,
+            linewidth=2,
+            label="Overall raw " + legend_label,
+        )
     # plot a line for max available area
     if nb_resourcesSmall and nb_resourcesLong and nb_resourcesLarge and not normalize:
         ax.plot(
@@ -841,6 +905,53 @@ def plot_binned_load(
         linewidth=1,
         label="Mean {0} for Large Jobs ({1:.2f})".format(legend_label, meanLarge),
     )
+    if divisor != None:
+        ax.plot(
+            [o.index[0], o.index[-1]],
+            [meanOverall, meanOverall],
+            linestyle="--",
+            linewidth=1,
+            label="Mean {0} for Overall Jobs ({1:.2f})".format(
+                legend_label, meanOverall
+            ),
+        )
+        ax.plot(
+            [uu.index[0], uu.index[-1]],
+            [meanSmallRaw, meanSmallRaw],
+            linestyle="--",
+            linewidth=1,
+            label="Mean {0} for Raw Small Jobs ({1:.2f})".format(
+                legend_label, meanSmallRaw
+            ),
+        )
+        ax.plot(
+            [ll.index[0], ll.index[-1]],
+            [meanLongRaw, meanLongRaw],
+            linestyle="--",
+            linewidth=1,
+            label="Mean {0} for Raw Long Jobs ({1:.2f})".format(
+                legend_label, meanLongRaw
+            ),
+        )
+        ax.plot(
+            [xx.index[0], xx.index[-1]],
+            [meanLargeRaw, meanLargeRaw],
+            linestyle="--",
+            linewidth=1,
+            label="Mean {0} for Raw Large Jobs ({1:.2f})".format(
+                legend_label, meanLargeRaw
+            ),
+        )
+        ax.plot(
+            [oo.index[0], oo.index[-1]],
+            [meanOverallRaw, meanOverallRaw],
+            linestyle="--",
+            linewidth=1,
+            label="Mean {0} for Raw Overall Jobs ({1:.2f})".format(
+                legend_label, meanOverallRaw
+            ),
+        )
+    # This handles drawing the reset markers
     sns.rugplot(u.load[u.load == 0].index, ax=ax, color="r")
     sns.rugplot(l.load[l.load == 0].index, ax=ax, color="r")
     sns.rugplot(x.load[x.load == 0].index, ax=ax, color="r")
@@ -858,7 +969,13 @@ def plot_binned_load(
     # https://github.com/mwaskom/seaborn/issues/1071
 
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    ax.set(ylim=(-10, loadLarge.load.max() + 10))
+    if divisor != None:
+        ax.set(
+            xlim=(0, xAxisTermination),
+            ylim=(-10, loadOverall.load.max() + 10),
+        )
+    else:
+        ax.set(ylim=(-10, xx.load.max() + 10))
     ax.grid(True)
     ax.legend()
     ax.set_title("Cluster Utilization by Job Type")
