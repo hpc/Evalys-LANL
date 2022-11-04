@@ -273,8 +273,8 @@ class JobSet(object):
                 time_scale=time_scale,
                 divisor=divisor,
                 loadOverall=overallUtilization,
-                # windowStartTime=windowStartTime,
-                # windowFinishTime=windowFinishTime,
+                reservationStartTime=reservationStart,
+                reservationFinishTime=reservationStart + reservationExec,
                 xAxisTermination=xAxisTermination,
             )
         elif binned:

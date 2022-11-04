@@ -737,8 +737,8 @@ def plot_binned_load(
     TimeZoneString="UTC",
     divisor=None,
     loadOverall=None,
-    # windowStartTime=None,
-    # windowFinishTime=None,
+    reservationStartTime=None,
+    reservationFinishTime=None,
     xAxisTermination=None,
 ):
     """
@@ -955,6 +955,12 @@ def plot_binned_load(
     sns.rugplot(u.load[u.load == 0].index, ax=ax, color="r")
     sns.rugplot(l.load[l.load == 0].index, ax=ax, color="r")
     sns.rugplot(x.load[x.load == 0].index, ax=ax, color="r")
+
+    # Draw markers for the reservation's start and stop points
+    if divisor != None:
+        d = {"time": [reservationStartTime, reservationFinishTime], "yaxis": [0, 0]}
+        df = pd.DataFrame(data=d)
+        sns.rugplot(d, ax=ax, color="y")
 
     ax.scatter(
         [],
