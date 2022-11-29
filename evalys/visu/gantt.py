@@ -67,6 +67,7 @@ class GanttVisualization(core.Visualization):
         "finish_time",
         "starting_time",
         "submission_time",
+        "purpose",
     )
 
     def __init__(self, lspec, *, title="Gantt chart"):
@@ -126,24 +127,23 @@ class GanttVisualization(core.Visualization):
     ):
         def _plot_job(job):
             x0 = job["starting_time"]
-            if job["jobID"] == 9645:
-                pass
             duration = job["execution_time"]
-            for itv in job["allocated_resources"].intervals():
-                height = itv.sup - itv.inf + 1
-                rect = matplotlib.patches.Rectangle(
-                    (x0, itv.inf),
-                    duration,
-                    height,
-                    alpha=self.alpha,
-                    facecolor=functools.partial(self.colorer, palette=self.palette)(
-                        job
-                    ),
-                    edgecolor="black",
-                    linewidth=0.5,
-                )
-                self._ax.add_artist(rect)
-                # self._annotate(rect, self.labeler(job))
+            if job["purpose"] != "reservation":
+                for itv in job["allocated_resources"].intervals():
+                    height = itv.sup - itv.inf + 1
+                    rect = matplotlib.patches.Rectangle(
+                        (x0, itv.inf),
+                        duration,
+                        height,
+                        alpha=self.alpha,
+                        facecolor=functools.partial(self.colorer, palette=self.palette)(
+                            job
+                        ),
+                        edgecolor="black",
+                        linewidth=0.5,
+                    )
+                    self._ax.add_artist(rect)
+                    # self._annotate(rect, self.labeler(job))
 
         df.apply(_plot_job, axis="columns")
 
