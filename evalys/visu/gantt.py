@@ -12,7 +12,7 @@ from . import core
 from .. import utils
 
 
-def NOLABEL(_):
+def NOLABEL(_): # TODO What is this?
     """Labeler strategy disabling the labeling of jobs."""
     return ""
 
