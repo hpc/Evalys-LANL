@@ -6,6 +6,7 @@ import matplotlib.dates
 import matplotlib.patches
 import numpy
 import pandas
+import os
 
 from . import core
 from .. import utils
@@ -13,7 +14,7 @@ from .. import utils
 
 def NOLABEL(_):
     """Labeler strategy disabling the labeling of jobs."""
-    return ''
+    return ""
 
 
 class GanttVisualization(core.Visualization):
@@ -59,47 +60,54 @@ class GanttVisualization(core.Visualization):
         To disable the labeling of jobs, use :func:`~gantt.NOLABEL`.
     """
 
-    COLUMNS = ('jobID', 'allocated_resources', 'execution_time',
-               'finish_time', 'starting_time', 'submission_time', )
+    COLUMNS = (
+        "jobID",
+        "allocated_resources",
+        "execution_time",
+        "finish_time",
+        "starting_time",
+        "submission_time",
+        "purpose",
+    )
 
-    def __init__(self, lspec, *, title='Gantt chart'):
+    def __init__(self, lspec, *, title="Gantt chart"):
         super().__init__(lspec)
         self.title = title
         self.xscale = None
         self.alpha = 0.4
         self.colorer = self.round_robin_map
-        self.labeler = lambda job: str(job['jobID'])
+        self.labeler = lambda job: str(job["jobID"])
         self._columns = self.COLUMNS
 
     def _customize_layout(self):
         self._ax.grid(True)
 
         # adapt scale of axes if requested
-        if self.xscale == 'time':
+        if self.xscale == "time":
             self._ax.xaxis.set_major_formatter(
-                matplotlib.dates.DateFormatter('%Y-%m-%d\n%H:%M:%S')
+                matplotlib.dates.DateFormatter("%Y-%m-%d\n%H:%M:%S")
             )
 
     @staticmethod
     def _adapt_uniq_num(df):
-        df['uniq_num'] = numpy.arange(0, len(df))
+        df["uniq_num"] = numpy.arange(0, len(df))
 
     @staticmethod
     def _adapt_time_xscale(df):
         # interpret columns with time aware semantics
-        df['submission_time'] = pandas.to_datetime(df['submission_time'], unit='s')
-        df['starting_time'] = pandas.to_datetime(df['starting_time'], unit='s')
-        df['execution_time'] = pandas.to_timedelta(df['execution_time'], unit='s')
-        df['finish_time'] = df['starting_time'] + df['execution_time']
+        df["submission_time"] = pandas.to_datetime(df["submission_time"], unit="s")
+        df["starting_time"] = pandas.to_datetime(df["starting_time"], unit="s")
+        df["execution_time"] = pandas.to_timedelta(df["execution_time"], unit="s")
+        df["finish_time"] = df["starting_time"] + df["execution_time"]
         # convert columns to use them with matplotlib
-        df['submission_time'] = df['submission_time'].map(matplotlib.dates.date2num)
-        df['starting_time'] = df['starting_time'].map(matplotlib.dates.date2num)
-        df['finish_time'] = df['finish_time'].map(matplotlib.dates.date2num)
-        df['execution_time'] = df['finish_time'] - df['starting_time']
+        df["submission_time"] = df["submission_time"].map(matplotlib.dates.date2num)
+        df["starting_time"] = df["starting_time"].map(matplotlib.dates.date2num)
+        df["finish_time"] = df["finish_time"].map(matplotlib.dates.date2num)
+        df["execution_time"] = df["finish_time"] - df["starting_time"]
 
     def _adapt(self, df):
         self._adapt_uniq_num(df)
-        if self.xscale == 'time':
+        if self.xscale == "time":
             self._adapt_time_xscale(df)
 
     @staticmethod
@@ -107,37 +115,68 @@ class GanttVisualization(core.Visualization):
         rx, ry = rect.get_xy()
         cx, cy = rx + rect.get_width() / 2.0, ry + rect.get_height() / 2.0
         rect.axes.annotate(
-            label,
-            (cx, cy),
-            color='black',
-            fontsize='small',
-            ha='center',
-            va='center'
+            label, (cx, cy), color="black", fontsize="small", ha="center", va="center"
         )
 
     @staticmethod
     def round_robin_map(job, palette):
-        return palette[job['uniq_num'] % len(palette)]
+        return palette[job["uniq_num"] % len(palette)]
 
-    def _draw(self, df):
+    def _draw(
+        self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None
+    ):
         def _plot_job(job):
-            x0 = job['starting_time']
-            duration = job['execution_time']
-            for itv in job['allocated_resources'].intervals():
-                height = itv.sup - itv.inf + 1
+            x0 = job["starting_time"]
+            duration = job["execution_time"]
+            if job["purpose"] != "reservation":
+                for itv in job["allocated_resources"].intervals():
+                    height = itv.sup - itv.inf + 1
+                    rect = matplotlib.patches.Rectangle(
+                        (x0, itv.inf),
+                        duration,
+                        height,
+                        alpha=self.alpha,
+                        facecolor=functools.partial(self.colorer, palette=self.palette)(
+                            job
+                        ),
+                        edgecolor="black",
+                        linewidth=0.5,
+                    )
+                    self._ax.add_artist(rect)
+                    # self._annotate(rect, self.labeler(job))
+
+        df.apply(_plot_job, axis="columns")
+
+        if (resvStart != None and resvExecTime != None) and resvSet == None:
+            resvNodes = str(resvNodes).split("-")
+            startNode = int(resvNodes[0])
+            height = int(resvNodes[1]) - int(resvNodes[0])
+            rect = matplotlib.patches.Rectangle(
+                (resvStart, startNode),
+                resvExecTime,
+                height,
+                alpha=self.alpha,
+                facecolor="#FF0000",
+                edgecolor="black",
+                linewidth=0.5,
+            )
+            self._ax.add_artist(rect)
+        elif resvSet != None:
+            for row in resvSet:
+                resvNodes = str(row["allocated_resources"])
+                resvNodes = resvNodes.split("-")
+                startNode = int(resvNodes[0])
+                height = int(resvNodes[1]) - int(resvNodes[0])
                 rect = matplotlib.patches.Rectangle(
-                    (x0, itv.inf),
-                    duration,
+                    (int(row["starting_time"]), startNode),
+                    int(row["execution_time"]),
                     height,
                     alpha=self.alpha,
-                    facecolor=functools.partial(self.colorer, palette=self.palette)(job),
-                    edgecolor='black',
-                    linewidth=0.5
+                    facecolor="#FF0000",
+                    edgecolor="black",
+                    linewidth=0.5,
                 )
                 self._ax.add_artist(rect)
-                self._annotate(rect, self.labeler(job))
-        #
-        df.apply(_plot_job, axis='columns')
 
     def build(self, jobset):
         df = jobset.df.loc[:, self._columns]  # copy just what is needed
@@ -151,10 +190,32 @@ class GanttVisualization(core.Visualization):
             ylim=(jobset.res_bounds.inf - 1, jobset.res_bounds.sup + 2),
         )
 
+    def buildDf(
+        self,
+        df,
+        res_bounds,
+        windowStartTime,
+        windowFinishTime,
+        resvStart=None,
+        resvExecTime=None,
+        resvNodes=None,
+        resvSet=None,
+    ):
+        df = df.loc[:, self._columns]  # copy just what is needed
+        self._adapt(df)  # extract the data required for the visualization
+        self._customize_layout()  # prepare the layout for displaying the data
+        self._draw(
+            df, resvStart, resvExecTime, resvNodes, resvSet
+        )  # do the painting job
+        # My axis setting method
+        self._ax.set(
+            xlim=(windowStartTime, windowFinishTime),
+            ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
+        )
 
 
 class DiffGanttVisualization(GanttVisualization):
-    def __init__(self, lspec, *, title='Gantt charts comparison'):
+    def __init__(self, lspec, *, title="Gantt charts comparison"):
         super().__init__(lspec, title=title)
         self.alpha = 0.5
         self.colorer = lambda _, palette: palette[0]  # single color per jobset
@@ -194,12 +255,12 @@ class DiffGanttVisualization(GanttVisualization):
             )
 
         # add legend to the visualization
-        self._ax.legend(handles=captions, loc='best')
+        self._ax.legend(handles=captions, loc="best")
 
         self.palette = _orig_palette  # restore original palette
 
 
-def plot_gantt(jobset, *, title='Gantt chart', **kwargs):
+def plot_gantt(jobset, *, title="Gantt chart", **kwargs):
     """
     Helper function to create a Gantt chart of a workload.
 
@@ -214,13 +275,55 @@ def plot_gantt(jobset, *, title='Gantt chart', **kwargs):
         class.
     """
     layout = core.SimpleLayout(wtitle=title)
-    plot = layout.inject(GanttVisualization, spskey='all', title=title)
+    plot = layout.inject(GanttVisualization, spskey="all", title=title)
     utils.bulksetattr(plot, **kwargs)
     plot.build(jobset)
     layout.show()
 
 
-def plot_diff_gantt(jobsets, *, title='Gantt charts comparison', **kwargs):
+def plot_gantt_df(
+    df,
+    res_bounds,
+    windowStartTime,
+    windowFinishTime,
+    *,
+    title="Gantt chart",
+    resvStart=None,
+    resvExecTime=None,
+    resvNodes=None,
+    resvSet=None,
+    **kwargs
+):
+    """
+    Helper function to create a Gantt chart of a workload.
+
+    :param jobset: The jobset under study.
+    :type jobset: ``JobSet``
+
+    :param title: The title of the window.
+    :type title: ``str``
+
+    :param \**kwargs:
+        The keyword arguments to be fed to the constructor of the visualization
+        class.
+    """
+    layout = core.SimpleLayout(wtitle=title)
+    plot = layout.inject(GanttVisualization, spskey="all", title=title)
+    utils.bulksetattr(plot, **kwargs)
+    plot.buildDf(
+        df,
+        res_bounds,
+        windowStartTime,
+        windowFinishTime,
+        resvStart,
+        resvExecTime,
+        resvNodes,
+        resvSet,
+    )
+    layout.show()
+
+
+def plot_diff_gantt(jobsets, *, title="Gantt charts comparison", **kwargs):
     """
     Helper function to create a comparison of Gantt charts of two (or more)
     workloads.
@@ -236,7 +339,7 @@ def plot_diff_gantt(jobsets, *, title='Gantt charts comparison', **kwargs):
         class.
     """
     layout = core.SimpleLayout(wtitle=title)
-    plot = layout.inject(DiffGanttVisualization, spskey='all', title=title)
+    plot = layout.inject(DiffGanttVisualization, spskey="all", title=title)
     utils.bulksetattr(plot, **kwargs)
     plot.build(jobsets)
     layout.show()

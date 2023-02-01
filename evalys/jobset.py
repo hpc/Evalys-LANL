@@ -231,11 +231,12 @@ class JobSet(object):
         average=False,
         divisor=None,
         xAxisTermination=None,
+        timeline=False,
     ):
         nrows = 1
         if with_details and not binned and not average:
             nrows = nrows + 2
-        if with_gantt and not binned and not average:
+        if (with_gantt) and not binned and not average:
             nrows = nrows + 1
         if with_gantt and binned and not average:
             nrows = nrows + 3
@@ -244,12 +245,12 @@ class JobSet(object):
         )  # FIXME I can override figsize here
         if title:
             fig.suptitle(title, fontsize=16)
-        if not binned and not average:
+        if (not binned and not average) or timeline:
             vleg.plot_load(
                 self.utilisation,
                 self.MaxProcs,
                 legend_label="utilisation",
-                ax=axe[0],
+                ax=axe,
                 normalize=normalize,
                 time_scale=time_scale,
             )

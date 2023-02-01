@@ -178,7 +178,6 @@ def plot_gantt(
         )
     elif windowStartTime and windowFinishTime:
         ax.set_xlim(windowStartTime, windowFinishTime)
-
     ax.set_ylim(jobset.res_bounds[0] - 1, jobset.res_bounds[1] + 2)
     ax.grid(True)
     ax.set_title(title)

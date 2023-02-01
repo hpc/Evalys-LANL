@@ -30,6 +30,7 @@ class SeriesVisualization(core.Visualization):
         * If set to `time`, the x-axis interprets the data as timestamps, and
           uses a time-aware semantic.
     """
+
     _metric = None
     available_series = {}
 
@@ -50,23 +51,23 @@ class SeriesVisualization(core.Visualization):
         try:
             return cls.available_series[name]
         except KeyError:
-            raise KeyError('Unknown series: {}'.format(name))
+            raise KeyError("Unknown series: {}".format(name))
 
-    def __init__(self, lspec, *, title='Time Series plot'):
+    def __init__(self, lspec, *, title="Time Series plot"):
         super().__init__(lspec)
         self.title = title
         self.xscale = None
 
     def build(self, jobset, legend_label):
-        # TODO: remove dependency to legacy code
+        # FIXME: remove dependency to legacy code
         # XXX: palette is not injected properly
         # XXX: we are missing the normalize parameter
         legacy.plot_load(
             load=getattr(jobset, self._metric),
             nb_resources=jobset.MaxProcs,
             ax=self._ax,
-            time_scale=(self.xscale == 'time'),
-            legend_label=legend_label
+            time_scale=(self.xscale == "time"),
+            legend_label=legend_label,
         )
 
 
@@ -87,38 +88,44 @@ def register(*, name, column=None):
         The actual column name that is used for the series.  It defaults to
         `name`.
     """
+
     def _wrapper(cls):
         if not issubclass(cls, SeriesVisualization):
             raise TypeError(
-                'Unable to register a class that does not derive from SeriesVisualization'
+                "Unable to register a class that does not derive from SeriesVisualization"
             )
         if name in cls.available_series:
-            raise KeyError('Name collision with {}'.format(name))
+            raise KeyError("Name collision with {}".format(name))
         cls._metric = column or name  # defaults to name
         cls.available_series[name] = cls
         return cls
+
     return _wrapper
 
 
-@register(name='queue')
+@register(name="queue")
 class QueueSeriesVisualization(SeriesVisualization):
     """
     Visualization of the size of the queue with respect to time.
     """
-    def __init__(self, lspec, *, title='Queue size'):
+
+    def __init__(self, lspec, *, title="Queue size"):
         super().__init__(lspec, title=title)
 
 
-@register(name='utilization', column='utilisation')  # nasty misspell in original source code
+@register(
+    name="utilization", column="utilisation"
+)  # nasty misspell in original source code
 class UtilizationSeriesVisualization(SeriesVisualization):
     """
     Visualization of the resources' utilization with respect to time.
     """
-    def __init__(self, lspec, *, title='Resources\' utilization'):
+
+    def __init__(self, lspec, *, title="Resources' utilization"):
         super().__init__(lspec, title=title)
 
 
-def plot_series(jobset, *, name, title='Time series plot', legend_label, **kwargs):
+def plot_series(jobset, *, name, title="Time series plot", legend_label, **kwargs):
     """
     Helper function to create a series visualization of a workload.
 
@@ -139,7 +146,7 @@ def plot_series(jobset, *, name, title='Time series plot', legend_label, **kwarg
         class.
     """
     layout = core.SimpleLayout(wtitle=title)
-    plot = layout.inject(SeriesVisualization.factory(name), spskey='all', title=title)
+    plot = layout.inject(SeriesVisualization.factory(name), spskey="all", title=title)
     utils.bulksetattr(plot, **kwargs)
     plot.build(jobset, legend_label)
     plot._ax.set_title(title)
