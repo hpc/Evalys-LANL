@@ -229,6 +229,7 @@ class JobSet(object):
         windowFinishTime=None,
         binned=False,
         average=False,
+        simple=False,
         divisor=None,
         xAxisTermination=None,
         timeline=False,
@@ -245,7 +246,7 @@ class JobSet(object):
         )  # FIXME I can override figsize here
         if title:
             fig.suptitle(title, fontsize=16)
-        if (not binned and not average) or timeline:
+        if ((not binned and not average) or timeline) and not simple:
             vleg.plot_load(
                 self.utilisation,
                 self.MaxProcs,
