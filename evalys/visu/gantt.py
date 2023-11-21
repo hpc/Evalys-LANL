@@ -12,7 +12,7 @@ from . import core
 from .. import utils
 
 
-def NOLABEL(_): # TODO What is this?
+def NOLABEL(_):
     """Labeler strategy disabling the labeling of jobs."""
     return ""
 
@@ -178,24 +178,6 @@ class GanttVisualization(core.Visualization):
                 )
                 self._ax.add_artist(rect)
 
-        # if (resvStart != None and resvExecTime != None and resvNodes != None):
-        #     height = 1490
-        #     startNode=0
-        #     if (resvNodes != None):
-        #         resvNodes = resvNodes.split("-")
-        #         startNode = int(resvNodes[0])
-        #         height = int(resvNodes[1])-int(resvNodes[0])
-        #     rect = matplotlib.patches.Rectangle(
-        #         (resvStart, startNode),
-        #         resvExecTime,
-        #         height,
-        #         alpha = self.alpha,
-        #         facecolor='#FF0000',
-        #         edgecolor='black',
-        #         linewidth=0.5
-        #     )
-        #     self._ax.add_artist(rect)
-
     def build(self, jobset):
         df = jobset.df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
@@ -218,34 +200,18 @@ class GanttVisualization(core.Visualization):
         resvExecTime=None,
         resvNodes=None,
         resvSet=None,
-    ):  # TODO This might need some additional tweaking
+    ):
         df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
         self._draw(
             df, resvStart, resvExecTime, resvNodes, resvSet
         )  # do the painting job
-
-        # tweak boundaries to match the studied jobset
-        # try:
-
-        # Default axis setting method
-        # self._ax.set(
-        #     xlim=(df.submission_time.min(), df.finish_time.max()),
-        #     ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
-        # )
-
         # My axis setting method
         self._ax.set(
             xlim=(windowStartTime, windowFinishTime),
             ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
         )
-
-        # except:
-        #     print("Assumption of axis limits failed, using default values!")
-        #     self._ax.set(
-        #         xlim=()
-        #     )
 
 
 class DiffGanttVisualization(GanttVisualization):
@@ -326,6 +292,7 @@ def plot_gantt_df(
     resvExecTime=None,
     resvNodes=None,
     resvSet=None,
+    dimensions=(6.4,4.8),
     **kwargs
 ):
     """
@@ -341,7 +308,7 @@ def plot_gantt_df(
         The keyword arguments to be fed to the constructor of the visualization
         class.
     """
-    layout = core.SimpleLayout(wtitle=title)
+    layout = core.SimpleLayout(wtitle=title,dimensions=dimensions)
     plot = layout.inject(GanttVisualization, spskey="all", title=title)
     utils.bulksetattr(plot, **kwargs)
     plot.buildDf(
