@@ -90,6 +90,11 @@ class GanttVisualization(core.Visualization):
 
     @staticmethod
     def _adapt_uniq_num(df):
+        """
+        Assigns each job in the df a unique number - effectively an internal jobid
+        :param df:
+        :return:
+        """
         df["uniq_num"] = numpy.arange(0, len(df))
 
     @staticmethod
@@ -122,6 +127,10 @@ class GanttVisualization(core.Visualization):
     def round_robin_map(job, palette):
         return palette[job["uniq_num"] % len(palette)]
 
+    @staticmethod
+    def project_color_map(job, palette):
+        return palette[job["account"]-1]
+
     def _draw(
         self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None,
     ):
@@ -151,7 +160,7 @@ class GanttVisualization(core.Visualization):
                             height,
                             alpha=self.alpha,
 
-                            facecolor=functools.partial(self.colorer, palette=core.generate_palette(num_projects))(
+                            facecolor=functools.partial(self.project_color_map, palette=core.generate_palette(num_projects))(
                                 job
                             ),
                             edgecolor="black",
@@ -249,7 +258,10 @@ class GanttVisualization(core.Visualization):
         colorationMethod="default",
         num_projects=None,
     ):
-        df = df.loc[:, self._columns]  # copy just what is needed
+        if colorationMethod == "project":
+            df = df.loc[:, self.COLUMNS + ("account",)]  # copy just what is needed
+        else:
+            df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
         self._draw(
