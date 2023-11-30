@@ -61,12 +61,6 @@ class EvalysLayout:
         """
         self.fig.show()
 
-    def resize(self, width, height):
-        """
-        Resize the figure window
-        """
-        self.fig.set_size_inches(width, height)
-
     def inject(self, visu_cls, spskey, *args, **kwargs):
         """
         Create a visualization, and bind it to the layout.
@@ -113,9 +107,8 @@ class SimpleLayout(EvalysLayout):
     Simplest possible layout that uses all available space.
     """
 
-    def __init__(self, *, wtitle='Simple Figure', dimensions=(6.4,4.8)):
+    def __init__(self, *, wtitle='Simple Figure'):
         super().__init__(wtitle=wtitle)
-        self.resize(dimensions[0], dimensions[1])
         self.sps['all'] = matplotlib.gridspec.GridSpec(nrows=1, ncols=1)[0]
 
 
@@ -135,6 +128,7 @@ class Visualization:
         self._lspec = lspec
         self._ax = None
         self._set_axes()
+
         self.palette = generate_palette(8)
 
     def _set_axes(self):

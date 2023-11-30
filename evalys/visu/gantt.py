@@ -123,30 +123,72 @@ class GanttVisualization(core.Visualization):
         return palette[job["uniq_num"] % len(palette)]
 
     def _draw(
-        self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None
+        self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None,
     ):
-        def _plot_job(job):
+        def _plot_job(job, colorationMethod="default", num_projects=None):
             x0 = job["starting_time"]
             duration = job["execution_time"]
             if job["purpose"] != "reservation":
                 for itv in job["allocated_resources"].intervals():
                     height = itv.sup - itv.inf + 1
-                    rect = matplotlib.patches.Rectangle(
-                        (x0, itv.inf),
-                        duration,
-                        height,
-                        alpha=self.alpha,
-                        facecolor=functools.partial(self.colorer, palette=self.palette)(
-                            job
-                        ),
-                        edgecolor="black",
-                        linewidth=0.5,
-                    )
+                    if colorationMethod == "default":
+                        rect = matplotlib.patches.Rectangle(
+                            (x0, itv.inf),
+                            duration,
+                            height,
+                            alpha=self.alpha,
+
+                            facecolor=functools.partial(self.colorer, palette=self.palette)(
+                                job
+                            ),
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
+                    elif colorationMethod == "project" and num_projects != None:
+                        rect = matplotlib.patches.Rectangle(
+                            (x0, itv.inf),
+                            duration,
+                            height,
+                            alpha=self.alpha,
+
+                            facecolor=functools.partial(self.colorer, palette=generate_palette(num_projects))(
+                                job
+                            ),
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
+                    elif colorationMethod == "dependency":
+                        rect = matplotlib.patches.Rectangle(
+                            (x0, itv.inf),
+                            duration,
+                            height,
+                            alpha=self.alpha,
+
+                            facecolor=functools.partial(self.colorer, palette=self.palette)(
+                                job
+                            ),
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
+                    else:
+                        rect = matplotlib.patches.Rectangle(
+                            (x0, itv.inf),
+                            duration,
+                            height,
+                            alpha=self.alpha,
+
+                            facecolor=functools.partial(self.colorer, palette=self.palette)(
+                                job
+                            ),
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
                     self._ax.add_artist(rect)
                     # self._annotate(rect, self.labeler(job))
 
-        df.apply(_plot_job, axis="columns")
+        df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects)
 
+        # If there's a single reservation:
         if (resvStart != None and resvExecTime != None) and resvSet == None:
             resvNodes = str(resvNodes).split("-")
             startNode = int(resvNodes[0])
@@ -161,6 +203,9 @@ class GanttVisualization(core.Visualization):
                 linewidth=0.5,
             )
             self._ax.add_artist(rect)
+            # TODO Annotate reservation with name/type/purpose
+
+        # If there are multiple reservations:
         elif resvSet != None:
             for row in resvSet:
                 resvNodes = str(row["allocated_resources"])
@@ -177,6 +222,7 @@ class GanttVisualization(core.Visualization):
                     linewidth=0.5,
                 )
                 self._ax.add_artist(rect)
+                # TODO Annotate reservation with name/type/purpose
 
     def build(self, jobset):
         df = jobset.df.loc[:, self._columns]  # copy just what is needed
@@ -200,12 +246,14 @@ class GanttVisualization(core.Visualization):
         resvExecTime=None,
         resvNodes=None,
         resvSet=None,
+        colorationMethod="default",
+        num_projects=None,
     ):
         df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
         self._draw(
-            df, resvStart, resvExecTime, resvNodes, resvSet
+            df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects,
         )  # do the painting job
         # My axis setting method
         self._ax.set(
@@ -293,6 +341,8 @@ def plot_gantt_df(
     resvNodes=None,
     resvSet=None,
     dimensions=(6.4,4.8),
+    colorationMethod="default",
+    num_projects=None,
     **kwargs
 ):
     """
@@ -320,6 +370,8 @@ def plot_gantt_df(
         resvExecTime,
         resvNodes,
         resvSet,
+        colorationMethod,
+        num_projects,
     )
     layout.show()
 
