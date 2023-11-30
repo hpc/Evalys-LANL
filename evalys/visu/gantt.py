@@ -151,7 +151,7 @@ class GanttVisualization(core.Visualization):
                             height,
                             alpha=self.alpha,
 
-                            facecolor=functools.partial(self.colorer, palette=generate_palette(num_projects))(
+                            facecolor=functools.partial(self.colorer, palette=core.generate_palette(num_projects))(
                                 job
                             ),
                             edgecolor="black",
