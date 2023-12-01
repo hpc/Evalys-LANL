@@ -131,6 +131,10 @@ class GanttVisualization(core.Visualization):
     def project_color_map(job, palette):
         return palette[job["account"]-1]
 
+    @staticmethod
+    def dependency_color_map(job, palette):
+        return palette[job["dependency_chain_head"]  % len(palette)]
+
     def _draw(
         self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None,
     ):
@@ -173,7 +177,7 @@ class GanttVisualization(core.Visualization):
                             height,
                             alpha=self.alpha,
 
-                            facecolor=functools.partial(self.colorer, palette=self.palette)(
+                            facecolor=functools.partial(self.dependency_color_map, palette=core.generate_palette(8))(
                                 job
                             ),
                             edgecolor="black",
@@ -260,6 +264,8 @@ class GanttVisualization(core.Visualization):
     ):
         if colorationMethod == "project":
             df = df.loc[:, self.COLUMNS + ("account",)]  # copy just what is needed
+        elif colorationMethod == "dependency":
+            df = df.loc[:, self.COLUMNS + ("dependency_chain_head",)]
         else:
             df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
