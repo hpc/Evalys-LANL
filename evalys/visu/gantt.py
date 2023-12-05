@@ -139,8 +139,12 @@ class GanttVisualization(core.Visualization):
     def user_color_map(job, palette):
         return palette[job["user"]]
 
+    @staticmethod
+    def top_user_color_map(job, palette):
+        return palette[job["user_id"]]
+
     def _draw(
-        self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None, num_users=None
+        self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None, num_users=None, num_top_users=None,
     ):
         def _plot_job(job, colorationMethod="default", num_projects=None):
             x0 = job["starting_time"]
@@ -200,7 +204,19 @@ class GanttVisualization(core.Visualization):
                             edgecolor="black",
                             linewidth=0.5,
                         )
+                    elif colorationMethod == "user_top_20" and num_top_users != None:
+                        rect = matplotlib.patches.Rectangle(
+                            (x0, itv.inf),
+                            duration,
+                            height,
+                            alpha=self.alpha,
 
+                            facecolor=functools.partial(self.top_user_color_map, palette=core.generate_palette(num_top_users+1))(
+                                job
+                            ),
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
                     else:
                         rect = matplotlib.patches.Rectangle(
                             (x0, itv.inf),
@@ -215,7 +231,7 @@ class GanttVisualization(core.Visualization):
                             linewidth=0.5,
                         )
                     self._ax.add_artist(rect)
-                    if colorationMethod == "user":
+                    if colorationMethod == "user" or colorationMethod == "user_top_20":
                         self._annotate(rect, str(job["username"]))
                     # self._annotate(rect, self.labeler(job))
 
@@ -282,19 +298,20 @@ class GanttVisualization(core.Visualization):
         colorationMethod="default",
         num_projects=None,
         num_users=None,
+        num_top_users=None,
     ):
         if colorationMethod == "project":
             df = df.loc[:, self.COLUMNS + ("account",)]  # copy just what is needed
         elif colorationMethod == "dependency":
             df = df.loc[:, self.COLUMNS + ("dependency_chain_head",)]
-        elif colorationMethod == "user":
-            df = df.loc[:, self.COLUMNS + ("user", "username",)]
+        elif colorationMethod == "user" or colorationMethod == "user_top_20":
+            df = df.loc[:, self.COLUMNS + ("user", "username","user_id")]
         else:
             df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
         self._draw(
-            df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users,
+            df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users,num_top_users,
         )  # do the painting job
         # My axis setting method
         self._ax.set(
@@ -385,6 +402,7 @@ def plot_gantt_df(
     colorationMethod="default",
     num_projects=None,
     num_users=None,
+    num_top_users=None,
     **kwargs
 ):
     """
@@ -415,6 +433,7 @@ def plot_gantt_df(
         colorationMethod,
         num_projects,
         num_users,
+        num_top_users,
     )
     layout.show()
 
