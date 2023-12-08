@@ -217,6 +217,49 @@ class GanttVisualization(core.Visualization):
                             edgecolor="black",
                             linewidth=0.5,
                         )
+                    elif colorationMethod == "sched":
+                        if "SchedBackfill" in job["flags"]:
+                            rect = matplotlib.patches.Rectangle(
+                                (x0, itv.inf),
+                                duration,
+                                height,
+                                alpha=0.8,
+                                facecolor="#7A0200",
+                                edgecolor="black",
+                                linewidth=0.5,
+                            )
+                        elif "SchedSubmit" in job["flags"]:
+                            rect = matplotlib.patches.Rectangle(
+                                (x0, itv.inf),
+                                duration,
+                                height,
+                                alpha=0.8,
+                                facecolor="#246A73",
+                                edgecolor="black",
+                                linewidth=0.5,
+                            )
+                        # elif "SchedMain" in job["flags"]:
+                        #     rect = matplotlib.patches.Rectangle(
+                        #         (x0, itv.inf),
+                        #         duration,
+                        #         height,
+                        #         alpha=0.8,
+                        #         facecolor="#9EDA2F",
+                        #         edgecolor="black",
+                        #         linewidth=0.5,
+                        #     )
+                        else:
+                            rect = matplotlib.patches.Rectangle(
+                                (x0, itv.inf),
+                                duration,
+                                height,
+                                alpha=self.alpha,
+                                facecolor=functools.partial(self.colorer, palette=self.palette)(
+                                    job
+                                ),
+                                edgecolor="black",
+                                linewidth=0.5,
+                            )
                     else:
                         rect = matplotlib.patches.Rectangle(
                             (x0, itv.inf),
@@ -233,6 +276,9 @@ class GanttVisualization(core.Visualization):
                     self._ax.add_artist(rect)
                     if colorationMethod == "user" or colorationMethod == "user_top_20":
                         self._annotate(rect, str(job["username"]))
+                    if colorationMethod == "dependency":
+                        if job["dependency_chain_head"] != job["jobID"]:
+                            self._annotate(rect, str(job["dependency_chain_head"]))
                     # self._annotate(rect, self.labeler(job))
 
         df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects)
@@ -320,6 +366,8 @@ class GanttVisualization(core.Visualization):
             df = df.loc[:, self.COLUMNS + ("dependency_chain_head",)]
         elif colorationMethod == "user" or colorationMethod == "user_top_20":
             df = df.loc[:, self.COLUMNS + ("user", "username","user_id")]
+        elif colorationMethod == "sched":
+            df = df.loc[:, self.COLUMNS + ("flags",)]
         else:
             df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
