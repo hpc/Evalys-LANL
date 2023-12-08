@@ -258,20 +258,34 @@ class GanttVisualization(core.Visualization):
         elif resvSet != None:
             for row in resvSet:
                 resvNodes = str(row["allocated_resources"])
-                resvNodes = resvNodes.split("-")
-                startNode = int(resvNodes[0])
-                height = int(resvNodes[1]) - int(resvNodes[0])
-                rect = matplotlib.patches.Rectangle(
-                    (int(row["starting_time"]), startNode),
-                    int(row["execution_time"]),
-                    height,
-                    alpha=self.alpha,
-                    facecolor="#FF0000",
-                    edgecolor="black",
-                    linewidth=0.5,
-                )
-                self._ax.add_artist(rect)
-                # TODO Annotate reservation with name/type/purpose
+                resvNodes = resvNodes.split(" ")
+                for resvBlock in resvNodes:
+                    pass
+                    resvNodes = resvBlock.split("-")
+                    startNode = int(resvNodes[0])
+                    if len(resvNodes) < 2:
+                        rect = matplotlib.patches.Rectangle(
+                            (row["starting_time"], startNode),
+                            row["execution_time"],
+                            1,
+                            alpha=self.alpha,
+                            facecolor="#FF0000",
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
+                    else:
+                        height = int(resvNodes[1]) - int(resvNodes[0])
+                        rect = matplotlib.patches.Rectangle(
+                            (row["starting_time"], startNode),
+                            row["execution_time"],
+                            height,
+                            alpha=self.alpha,
+                            facecolor="#FF0000",
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
+                        self._ax.add_artist(rect)
+                    # TODO Annotate reservation with name/type/purpose
 
     def build(self, jobset):
         df = jobset.df.loc[:, self._columns]  # copy just what is needed
