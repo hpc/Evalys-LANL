@@ -260,6 +260,16 @@ class GanttVisualization(core.Visualization):
                                 edgecolor="black",
                                 linewidth=0.5,
                             )
+                    elif colorationMethod == "wait":
+                        rect = matplotlib.patches.Rectangle(
+                            (x0, itv.inf),
+                            duration,
+                            height,
+                            alpha=job["normalized_eligible_wait"],
+                            facecolor="#95374F",
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
                     else:
                         rect = matplotlib.patches.Rectangle(
                             (x0, itv.inf),
@@ -368,6 +378,8 @@ class GanttVisualization(core.Visualization):
             df = df.loc[:, self.COLUMNS + ("user", "username","user_id")]
         elif colorationMethod == "sched":
             df = df.loc[:, self.COLUMNS + ("flags",)]
+        elif colorationMethod == "wait":
+            df = df.loc[:, self.COLUMNS + ("normalized_eligible_wait",)]
         else:
             df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
