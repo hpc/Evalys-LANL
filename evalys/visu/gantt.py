@@ -120,7 +120,7 @@ class GanttVisualization(core.Visualization):
         rx, ry = rect.get_xy()
         cx, cy = rx + rect.get_width() / 2.0, ry + rect.get_height() / 2.0
         rect.axes.annotate(
-            label, (cx, cy), color="black", fontsize="small", ha="center", va="center"
+            label, (cx, cy), color="black", fontsize=1, ha="center", va="center"
         )
 
     @staticmethod
@@ -130,6 +130,10 @@ class GanttVisualization(core.Visualization):
     @staticmethod
     def project_color_map(job, palette):
         return palette[job["account"]-1]
+
+    @staticmethod
+    def partition_color_map(job, palette):
+        return palette[job["partition"]]
 
     @staticmethod
     def dependency_color_map(job, palette):
@@ -144,9 +148,9 @@ class GanttVisualization(core.Visualization):
         return palette[job["user_id"]]
 
     def _draw(
-        self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None, num_users=None, num_top_users=None,
+        self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None, num_users=None, num_top_users=None, partition_count=0,
     ):
-        def _plot_job(job, colorationMethod="default", num_projects=None):
+        def _plot_job(job, colorationMethod="default", num_projects=None, num_top_users=None, partition_count=0):
             x0 = job["starting_time"]
             duration = job["execution_time"]
             if job["purpose"] != "reservation":
@@ -270,6 +274,20 @@ class GanttVisualization(core.Visualization):
                             edgecolor="black",
                             linewidth=0.5,
                         )
+                    elif colorationMethod == "partition":
+                        rect = matplotlib.patches.Rectangle(
+                            (x0, itv.inf),
+                            duration,
+                            height,
+                            alpha=job["normalized_account"],
+
+                            facecolor=functools.partial(self.partition_color_map,
+                                                        palette=core.generate_palette(partition_count))(
+                                job
+                            ),
+                            edgecolor="black",
+                            linewidth=0.5,
+                        )
                     else:
                         rect = matplotlib.patches.Rectangle(
                             (x0, itv.inf),
@@ -289,9 +307,12 @@ class GanttVisualization(core.Visualization):
                     if colorationMethod == "dependency":
                         if job["dependency_chain_head"] != job["jobID"]:
                             self._annotate(rect, str(job["dependency_chain_head"]))
+                    if colorationMethod == "project" or colorationMethod == "partition":
+                        self._annotate(rect, job["account_name"])
+
                     # self._annotate(rect, self.labeler(job))
 
-        df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects)
+        df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects, partition_count=partition_count)
 
         # If there's a single reservation:
         if (resvStart != None and resvExecTime != None) and resvSet == None:
@@ -369,6 +390,7 @@ class GanttVisualization(core.Visualization):
         num_projects=None,
         num_users=None,
         num_top_users=None,
+        partition_count=0,
     ):
         if colorationMethod == "project":
             df = df.loc[:, self.COLUMNS + ("account",)]  # copy just what is needed
@@ -380,12 +402,14 @@ class GanttVisualization(core.Visualization):
             df = df.loc[:, self.COLUMNS + ("flags",)]
         elif colorationMethod == "wait":
             df = df.loc[:, self.COLUMNS + ("normalized_eligible_wait",)]
+        elif colorationMethod == "partition":
+            df = df.loc[:, self.COLUMNS + ("partition","account","normalized_account","account_name",)]
         else:
             df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
         self._draw(
-            df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users,num_top_users,
+            df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users,num_top_users, partition_count
         )  # do the painting job
         # My axis setting method
         self._ax.set(
@@ -477,6 +501,7 @@ def plot_gantt_df(
     num_projects=None,
     num_users=None,
     num_top_users=None,
+    partition_count=0,
     **kwargs
 ):
     """
@@ -508,6 +533,7 @@ def plot_gantt_df(
         num_projects,
         num_users,
         num_top_users,
+        partition_count,
     )
     layout.show()
 
