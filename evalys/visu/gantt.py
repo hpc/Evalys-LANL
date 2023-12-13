@@ -275,6 +275,12 @@ class GanttVisualization(core.Visualization):
                             linewidth=0.5,
                         )
                     elif colorationMethod == "partition":
+                        if "SchedBackfill" in job["flags"]:
+                            edge_color= "#FF0400"
+                        elif "SchedSubmit" in job["flags"]:
+                            edge_color= "#00E1FF"
+                        else:
+                            edge_color= "black"
                         rect = matplotlib.patches.Rectangle(
                             (x0, itv.inf),
                             duration,
@@ -285,7 +291,7 @@ class GanttVisualization(core.Visualization):
                                                         palette=core.generate_palette(partition_count))(
                                 job
                             ),
-                            edgecolor="black",
+                            edgecolor=edge_color,
                             linewidth=0.5,
                         )
                     else:
@@ -403,7 +409,7 @@ class GanttVisualization(core.Visualization):
         elif colorationMethod == "wait":
             df = df.loc[:, self.COLUMNS + ("normalized_eligible_wait",)]
         elif colorationMethod == "partition":
-            df = df.loc[:, self.COLUMNS + ("partition","account","normalized_account","account_name",)]
+            df = df.loc[:, self.COLUMNS + ("partition","account","normalized_account","account_name","flags",)]
         else:
             df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
