@@ -170,6 +170,12 @@ class GanttVisualization(core.Visualization):
                             linewidth=0.5,
                         )
                     elif colorationMethod == "project" and num_projects != None:
+                        if "SchedBackfill" in job["flags"]:
+                            edge_color= "#FF0400"
+                        elif "SchedSubmit" in job["flags"]:
+                            edge_color= "#00E1FF"
+                        else:
+                            edge_color= "black"
                         rect = matplotlib.patches.Rectangle(
                             (x0, itv.inf),
                             duration,
@@ -179,7 +185,7 @@ class GanttVisualization(core.Visualization):
                             facecolor=functools.partial(self.project_color_map, palette=core.generate_palette(num_projects))(
                                 job
                             ),
-                            edgecolor="black",
+                            edgecolor=edge_color,
                             linewidth=0.5,
                         )
                     elif colorationMethod == "dependency":
@@ -209,18 +215,28 @@ class GanttVisualization(core.Visualization):
                             linewidth=0.5,
                         )
                     elif colorationMethod == "user_top_20" and num_top_users != None:
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=self.alpha,
-
-                            facecolor=functools.partial(self.top_user_color_map, palette=core.generate_palette(num_top_users+1))(
-                                job
-                            ),
-                            edgecolor="black",
-                            linewidth=0.5,
-                        )
+                        if job["user_id"] != 0:
+                            rect = matplotlib.patches.Rectangle(
+                                (x0, itv.inf),
+                                duration,
+                                height,
+                                alpha=self.alpha,
+                                facecolor=functools.partial(self.top_user_color_map, palette=core.generate_palette(num_top_users))(
+                                    job
+                                ),
+                                edgecolor="black",
+                                linewidth=0.5,
+                            )
+                        else:
+                            rect = matplotlib.patches.Rectangle(
+                                (x0, itv.inf),
+                                duration,
+                                height,
+                                alpha=self.alpha,
+                                facecolor="#C2C2C2",
+                                edgecolor="black",
+                                linewidth=0.5,
+                            )
                     elif colorationMethod == "sched":
                         if "SchedBackfill" in job["flags"]:
                             rect = matplotlib.patches.Rectangle(
@@ -318,7 +334,7 @@ class GanttVisualization(core.Visualization):
 
                     # self._annotate(rect, self.labeler(job))
 
-        df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects, partition_count=partition_count)
+        df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects, partition_count=partition_count, num_top_users=num_top_users)
 
         # If there's a single reservation:
         if (resvStart != None and resvExecTime != None) and resvSet == None:
@@ -399,11 +415,11 @@ class GanttVisualization(core.Visualization):
         partition_count=0,
     ):
         if colorationMethod == "project":
-            df = df.loc[:, self.COLUMNS + ("account",)]  # copy just what is needed
+            df = df.loc[:, self.COLUMNS + ("account","flags",)]  # copy just what is needed
         elif colorationMethod == "dependency":
             df = df.loc[:, self.COLUMNS + ("dependency_chain_head",)]
         elif colorationMethod == "user" or colorationMethod == "user_top_20":
-            df = df.loc[:, self.COLUMNS + ("user", "username","user_id")]
+            df = df.loc[:, self.COLUMNS + ("user", "username","user_id",)]
         elif colorationMethod == "sched":
             df = df.loc[:, self.COLUMNS + ("flags",)]
         elif colorationMethod == "wait":
