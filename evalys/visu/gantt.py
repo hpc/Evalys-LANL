@@ -147,6 +147,104 @@ class GanttVisualization(core.Visualization):
     def top_user_color_map(job, palette):
         return palette[job["user_id"]]
 
+    def _coloration_middleman(self, job, x0, duration, height, itv, colorationMethod="default", num_projects=None, num_top_users=None, partition_count=0, num_users=None):
+        coloration_methods = {
+            "default": self._return_default_rectangle,
+            "project": self._return_project_rectangle if num_projects is not None else None,
+            "dependency": self._return_dependency_rectangle,
+            "user": self._return_user_rectangle if num_users is not None else None,
+            "user_top_20" : self._return_top_user_rectangle if num_top_users is not None else None,
+            "sched" : self._return_sched_rectangle,
+            "wait" : self._return_wait_rectangle,
+            "partition" : self._return_partition_rectangle,
+
+        }
+
+        # TODO Does this even work?
+        method_func = coloration_methods.get(colorationMethod, self._return_default_rectangle)
+        return method_func(job, x0, duration, height, itv, num_projects, num_users, num_top_users, partition_count)
+
+    def _return_default_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                                  num_top_users=None, partition_count=None):
+        return self._create_rectangle(job, x0, duration, height, itv, self.colorer)
+
+    def _return_project_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                                  num_top_users=None, partition_count=None):
+        edge_color = "#FF0400" if "SchedBackfill" in job["flags"] else "#00E1FF" if "SchedSubmit" in job[
+            "flags"] else "black"
+        return self._create_rectangle(job, x0, duration, height, itv, self.project_color_map, edge_color=edge_color,
+                                      palette=core.generate_palette(num_projects))
+
+    def _return_dependency_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                                     num_top_users=None, partition_count=None):
+        return self._create_rectangle(job, x0, duration, height, itv, self.dependency_color_map,
+                                      palette=core.generate_palette(8))
+
+    def _return_user_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                               num_top_users=None, partition_count=None):
+        return self._create_rectangle(job, x0, duration, height, itv, self.user_color_map,
+                                      palette=core.generate_palette(num_users + 1))
+
+    def _return_top_user_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                                   num_top_users=None, partition_count=None):
+        if job["user_id"] != 0:
+            return self._create_rectangle(job, x0, duration, height, itv, self.top_user_color_map,
+                                          palette=core.generate_palette(num_top_users))
+        else:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#C2C2C2", facecolor="#C2C2C2")
+
+    def _return_sched_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                                num_top_users=None, partition_count=None):
+        if "SchedBackfill" in job["flags"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#7A0200", facecolor="#7A0200")
+        elif "SchedSubmit" in job["flags"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#246A73", facecolor="#246A73")
+        else:
+            return self._create_rectangle(job, x0, duration, height, itv, self.colorer)
+
+    def _return_wait_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                               num_top_users=None, partition_count=None):
+        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F",
+                                      alpha=job["normalized_eligible_wait"], facecolor="#95374F")
+
+    def _return_partition_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                                    num_top_users=None, partition_count=None):
+        if "SchedBackfill" in job["flags"]:
+            edge_color = "#FF0400"
+        elif "SchedSubmit" in job["flags"]:
+            edge_color = "#00E1FF"
+        else:
+            edge_color = "black"
+        return self._create_rectangle(job, x0, duration, height, itv, self.partition_color_map,
+                                      alpha=job["normalized_account"], edge_color=edge_color, palette=core.generate_palette(partition_count))
+
+    def _create_rectangle(self, job, x0, duration, height, itv, color_func, alpha=-1, edge_color="black", palette=None, facecolor=None):
+        if alpha == -1:
+            alpha = self.alpha
+        if palette == None:
+            palette = self.palette
+        if facecolor is None:
+            return matplotlib.patches.Rectangle(
+                (x0, itv.inf),
+                duration,
+                height,
+                alpha=alpha,
+                facecolor=functools.partial(color_func, palette=palette)(job),
+                edgecolor=edge_color,
+                linewidth=0.5,
+            )
+        else:
+            return matplotlib.patches.Rectangle(
+                (x0, itv.inf),
+                duration,
+                height,
+                alpha=alpha,
+                facecolor=facecolor,
+                edgecolor=edge_color,
+                linewidth=0.5,
+            )
+
+
     def _draw(
         self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default", num_projects=None, num_users=None, num_top_users=None, partition_count=0,
     ):
@@ -156,108 +254,110 @@ class GanttVisualization(core.Visualization):
             if job["purpose"] != "reservation":
                 for itv in job["allocated_resources"].intervals():
                     height = itv.sup - itv.inf + 1
-                    if colorationMethod == "default":
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=self.alpha,
-
-                            facecolor=functools.partial(self.colorer, palette=self.palette)(
-                                job
-                            ),
-                            edgecolor="black",
-                            linewidth=0.5,
-                        )
-                    elif colorationMethod == "project" and num_projects != None:
-                        if "SchedBackfill" in job["flags"]:
-                            edge_color= "#FF0400"
-                        elif "SchedSubmit" in job["flags"]:
-                            edge_color= "#00E1FF"
-                        else:
-                            edge_color= "black"
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=self.alpha,
-
-                            facecolor=functools.partial(self.project_color_map, palette=core.generate_palette(num_projects))(
-                                job
-                            ),
-                            edgecolor=edge_color,
-                            linewidth=0.5,
-                        )
-                    elif colorationMethod == "dependency":
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=self.alpha,
-
-                            facecolor=functools.partial(self.dependency_color_map, palette=core.generate_palette(8))(
-                                job
-                            ),
-                            edgecolor="black",
-                            linewidth=0.5,
-                        )
-                    elif colorationMethod == "user" and num_users != None:
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=self.alpha,
-
-                            facecolor=functools.partial(self.user_color_map, palette=core.generate_palette(num_users+1))(
-                                job
-                            ),
-                            edgecolor="black",
-                            linewidth=0.5,
-                        )
-                    elif colorationMethod == "user_top_20" and num_top_users != None:
-                        if job["user_id"] != 0:
-                            rect = matplotlib.patches.Rectangle(
-                                (x0, itv.inf),
-                                duration,
-                                height,
-                                alpha=self.alpha,
-                                facecolor=functools.partial(self.top_user_color_map, palette=core.generate_palette(num_top_users))(
-                                    job
-                                ),
-                                edgecolor="black",
-                                linewidth=0.5,
-                            )
-                        else:
-                            rect = matplotlib.patches.Rectangle(
-                                (x0, itv.inf),
-                                duration,
-                                height,
-                                alpha=self.alpha,
-                                facecolor="#C2C2C2",
-                                edgecolor="black",
-                                linewidth=0.5,
-                            )
-                    elif colorationMethod == "sched":
-                        if "SchedBackfill" in job["flags"]:
-                            rect = matplotlib.patches.Rectangle(
-                                (x0, itv.inf),
-                                duration,
-                                height,
-                                alpha=0.8,
-                                facecolor="#7A0200",
-                                edgecolor="black",
-                                linewidth=0.5,
-                            )
-                        elif "SchedSubmit" in job["flags"]:
-                            rect = matplotlib.patches.Rectangle(
-                                (x0, itv.inf),
-                                duration,
-                                height,
-                                alpha=0.8,
-                                facecolor="#246A73",
-                                edgecolor="black",
-                                linewidth=0.5,
-                            )
+                    rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects, num_top_users, partition_count, num_users)
+                    # TODO This is disgusting. Please use functions.
+                    # if colorationMethod == "default":
+                    #     rect = matplotlib.patches.Rectangle(
+                    #         (x0, itv.inf),
+                    #         duration,
+                    #         height,
+                    #         alpha=self.alpha,
+                    #
+                    #         facecolor=functools.partial(self.colorer, palette=self.palette)(
+                    #             job
+                    #         ),
+                    #         edgecolor="black",
+                    #         linewidth=0.5,
+                    #     )
+                    # elif colorationMethod == "project" and num_projects != None:
+                    #     if "SchedBackfill" in job["flags"]:
+                    #         edge_color= "#FF0400"
+                    #     elif "SchedSubmit" in job["flags"]:
+                    #         edge_color= "#00E1FF"
+                    #     else:
+                    #         edge_color= "black"
+                    #     rect = matplotlib.patches.Rectangle(
+                    #         (x0, itv.inf),
+                    #         duration,
+                    #         height,
+                    #         alpha=self.alpha,
+                    #
+                    #         facecolor=functools.partial(self.project_color_map, palette=core.generate_palette(num_projects))(
+                    #             job
+                    #         ),
+                    #         edgecolor=edge_color,
+                    #         linewidth=0.5,
+                    #     )
+                    # elif colorationMethod == "dependency":
+                    #     rect = matplotlib.patches.Rectangle(
+                    #         (x0, itv.inf),
+                    #         duration,
+                    #         height,
+                    #         alpha=self.alpha,
+                    #
+                    #         facecolor=functools.partial(self.dependency_color_map, palette=core.generate_palette(8))(
+                    #             job
+                    #         ),
+                    #         edgecolor="black",
+                    #         linewidth=0.5,
+                    #     )
+                    # elif colorationMethod == "user" and num_users != None:
+                    #     rect = matplotlib.patches.Rectangle(
+                    #         (x0, itv.inf),
+                    #         duration,
+                    #         height,
+                    #         alpha=self.alpha,
+                    #
+                    #         facecolor=functools.partial(self.user_color_map, palette=core.generate_palette(num_users+1))(
+                    #             job
+                    #         ),
+                    #         edgecolor="black",
+                    #         linewidth=0.5,
+                    #     )
+                    # elif colorationMethod == "user_top_20" and num_top_users != None:
+                    #     if job["user_id"] != 0:
+                    #         rect = matplotlib.patches.Rectangle(
+                    #             (x0, itv.inf),
+                    #             duration,
+                    #             height,
+                    #             alpha=self.alpha,
+                    #             facecolor=functools.partial(self.top_user_color_map, palette=core.generate_palette(num_top_users))(
+                    #                 job
+                    #             ),
+                    #             edgecolor="black",
+                    #             linewidth=0.5,
+                    #         )
+                    #     else:
+                    #         rect = matplotlib.patches.Rectangle(
+                    #             (x0, itv.inf),
+                    #             duration,
+                    #             height,
+                    #             alpha=self.alpha,
+                    #             facecolor="#C2C2C2",
+                    #             edgecolor="black",
+                    #             linewidth=0.5,
+                    #         )
+                    # elif colorationMethod == "sched":
+                    #     if "SchedBackfill" in job["flags"]:
+                    #         rect = matplotlib.patches.Rectangle(
+                    #             (x0, itv.inf),
+                    #             duration,
+                    #             height,
+                    #             alpha=0.8,
+                    #             facecolor="#7A0200",
+                    #             edgecolor="black",
+                    #             linewidth=0.5,
+                    #         )
+                    #     elif "SchedSubmit" in job["flags"]:
+                    #         rect = matplotlib.patches.Rectangle(
+                    #             (x0, itv.inf),
+                    #             duration,
+                    #             height,
+                    #             alpha=0.8,
+                    #             facecolor="#246A73",
+                    #             edgecolor="black",
+                    #             linewidth=0.5,
+                    #         )
                         # elif "SchedMain" in job["flags"]:
                         #     rect = matplotlib.patches.Rectangle(
                         #         (x0, itv.inf),
@@ -268,61 +368,62 @@ class GanttVisualization(core.Visualization):
                         #         edgecolor="black",
                         #         linewidth=0.5,
                         #     )
-                        else:
-                            rect = matplotlib.patches.Rectangle(
-                                (x0, itv.inf),
-                                duration,
-                                height,
-                                alpha=self.alpha,
-                                facecolor=functools.partial(self.colorer, palette=self.palette)(
-                                    job
-                                ),
-                                edgecolor="black",
-                                linewidth=0.5,
-                            )
-                    elif colorationMethod == "wait":
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=job["normalized_eligible_wait"],
-                            facecolor="#95374F",
-                            edgecolor="black",
-                            linewidth=0.5,
-                        )
-                    elif colorationMethod == "partition":
-                        if "SchedBackfill" in job["flags"]:
-                            edge_color= "#FF0400"
-                        elif "SchedSubmit" in job["flags"]:
-                            edge_color= "#00E1FF"
-                        else:
-                            edge_color= "black"
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=job["normalized_account"],
+                        # else:
+                        #     rect = matplotlib.patches.Rectangle(
+                        #         (x0, itv.inf),
+                        #         duration,
+                        #         height,
+                        #         alpha=self.alpha,
+                        #         facecolor=functools.partial(self.colorer, palette=self.palette)(
+                        #             job
+                        #         ),
+                        #         edgecolor="black",
+                        #         linewidth=0.5,
+                        #     )
+                    # elif colorationMethod == "wait":
+                    #     rect = matplotlib.patches.Rectangle(
+                    #         (x0, itv.inf),
+                    #         duration,
+                    #         height,
+                    #         alpha=job["normalized_eligible_wait"],
+                    #         facecolor="#95374F",
+                    #         edgecolor="black",
+                    #         linewidth=0.5,
+                    #     )
+                    # elif colorationMethod == "partition":
+                    #     if "SchedBackfill" in job["flags"]:
+                    #         edge_color= "#FF0400"
+                    #     elif "SchedSubmit" in job["flags"]:
+                    #         edge_color= "#00E1FF"
+                    #     else:
+                    #         edge_color= "black"
+                    #     rect = matplotlib.patches.Rectangle(
+                    #         (x0, itv.inf),
+                    #         duration,
+                    #         height,
+                    #         alpha=job["normalized_account"],
+                    #
+                    #         facecolor=functools.partial(self.partition_color_map,
+                    #                                     palette=core.generate_palette(partition_count))(
+                    #             job
+                    #         ),
+                    #         edgecolor=edge_color,
+                    #         linewidth=0.5,
+                    #     )
 
-                            facecolor=functools.partial(self.partition_color_map,
-                                                        palette=core.generate_palette(partition_count))(
-                                job
-                            ),
-                            edgecolor=edge_color,
-                            linewidth=0.5,
-                        )
-                    else:
-                        rect = matplotlib.patches.Rectangle(
-                            (x0, itv.inf),
-                            duration,
-                            height,
-                            alpha=self.alpha,
-
-                            facecolor=functools.partial(self.colorer, palette=self.palette)(
-                                job
-                            ),
-                            edgecolor="black",
-                            linewidth=0.5,
-                        )
+                    # else:
+                    #     rect = matplotlib.patches.Rectangle(
+                    #         (x0, itv.inf),
+                    #         duration,
+                    #         height,
+                    #         alpha=self.alpha,
+                    #
+                    #         facecolor=functools.partial(self.colorer, palette=self.palette)(
+                    #             job
+                    #         ),
+                    #         edgecolor="black",
+                    #         linewidth=0.5,
+                    #     )
                     self._ax.add_artist(rect)
                     if colorationMethod == "user" or colorationMethod == "user_top_20":
                         self._annotate(rect, str(job["username"]))
@@ -415,7 +516,7 @@ class GanttVisualization(core.Visualization):
         partition_count=0,
     ):
         if colorationMethod == "project":
-            df = df.loc[:, self.COLUMNS + ("account","flags",)]  # copy just what is needed
+            df = df.loc[:, self.COLUMNS + ("account","account_name","flags",)]  # copy just what is needed
         elif colorationMethod == "dependency":
             df = df.loc[:, self.COLUMNS + ("dependency_chain_head",)]
         elif colorationMethod == "user" or colorationMethod == "user_top_20":
@@ -426,6 +527,8 @@ class GanttVisualization(core.Visualization):
             df = df.loc[:, self.COLUMNS + ("normalized_eligible_wait",)]
         elif colorationMethod == "partition":
             df = df.loc[:, self.COLUMNS + ("partition","account","normalized_account","account_name","flags",)]
+        elif colorationMethod == "exitstate":
+            df = df.loc[:, self.COLUMNS + ("success",)]
         else:
             df = df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
