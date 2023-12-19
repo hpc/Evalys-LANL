@@ -255,7 +255,7 @@ class GanttVisualization(core.Visualization):
                 for itv in job["allocated_resources"].intervals():
                     height = itv.sup - itv.inf + 1
                     rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects, num_top_users, partition_count, num_users)
-                    
+
                     self._ax.add_artist(rect)
                     if colorationMethod == "user" or colorationMethod == "user_top_20":
                         self._annotate(rect, str(job["username"]))
@@ -347,22 +347,19 @@ class GanttVisualization(core.Visualization):
         num_top_users=None,
         partition_count=0,
     ):
-        if colorationMethod == "project":
-            df = df.loc[:, self.COLUMNS + ("account","account_name","flags",)]  # copy just what is needed
-        elif colorationMethod == "dependency":
-            df = df.loc[:, self.COLUMNS + ("dependency_chain_head",)]
-        elif colorationMethod == "user" or colorationMethod == "user_top_20":
-            df = df.loc[:, self.COLUMNS + ("user", "username","user_id",)]
-        elif colorationMethod == "sched":
-            df = df.loc[:, self.COLUMNS + ("flags",)]
-        elif colorationMethod == "wait":
-            df = df.loc[:, self.COLUMNS + ("normalized_eligible_wait",)]
-        elif colorationMethod == "partition":
-            df = df.loc[:, self.COLUMNS + ("partition","account","normalized_account","account_name","flags",)]
-        elif colorationMethod == "exitstate":
-            df = df.loc[:, self.COLUMNS + ("success",)]
-        else:
-            df = df.loc[:, self._columns]  # copy just what is needed
+        column_mapping = {
+            "project": self.COLUMNS + ("account", "account_name", "flags",),
+            "dependency": self.COLUMNS + ("dependency_chain_head",),
+            "user": self.COLUMNS + ("user", "username", "user_id",),
+            "user_top_20": self.COLUMNS + ("user", "username", "user_id",),
+            "sched": self.COLUMNS + ("flags",),
+            "wait": self.COLUMNS + ("normalized_eligible_wait",),
+            "partition": self.COLUMNS + ("partition", "account", "normalized_account", "account_name", "flags",),
+            "exitstate": self.COLUMNS + ("success",),
+        }
+
+        df = df.loc[:, column_mapping.get(colorationMethod, self._columns)]
+
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
         self._draw(
