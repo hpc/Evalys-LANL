@@ -439,6 +439,13 @@ class GanttVisualization(core.Visualization):
             legend_func = legend_mapping.get(colorationMethod)
             legend_elements = legend_func()
             self._ax.legend(handles=legend_elements, loc="upper left")
+        if not legend:
+            edge_legend_mapping = {"sched": self._sched_border_legend}
+            legend = edge_legend_mapping.get(edgeMethod)
+            if legend:
+                legend_func = edge_legend_mapping.get(edgeMethod)
+                legend_elements = legend_func()
+                self._ax.legend(handles=legend_elements, loc="upper left")
 
     def _exitstate_legend(self):
         return [Patch(facecolor="#35F500", edgecolor='black',
@@ -461,6 +468,13 @@ class GanttVisualization(core.Visualization):
         return [Patch(facecolor="#7A0200", edgecolor='black',
                       label='SchedBackfill'),
                 Patch(facecolor="#246A73", edgecolor='black',
+                      label='SchedSubmit'),
+        ]
+
+    def _sched_border_legend(self):
+        return [Patch(facecolor="white", edgecolor='#FF0400',
+                      label='SchedBackfill'),
+                Patch(facecolor="white", edgecolor='#00E1FF',
                       label='SchedSubmit'),
         ]
 
