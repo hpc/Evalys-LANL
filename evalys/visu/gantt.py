@@ -19,6 +19,53 @@ def NOLABEL(_):
     return ""
 
 
+def _exitstate_legend():
+    return [Patch(facecolor="#35F500", edgecolor='black',
+                  label='COMPLETED'),
+            Patch(facecolor="#00FFEA", edgecolor='black',
+                  label='TIMEOUT'),
+            Patch(facecolor="#FF8604", edgecolor='black',
+                  label='CANCELLED'),
+            Patch(facecolor="#FF0000", edgecolor='black',
+                  label='FAILED'),
+            Patch(facecolor="#FFF700", edgecolor='black',
+                  label='NODE_FAIL'),
+            Patch(facecolor="#AE00FF", edgecolor='black',
+                  label='RUNNING'),
+            Patch(facecolor="#FF00AE", edgecolor='black',
+                  label='OUT_OF_MEMORY'),
+            ]
+
+
+def _sched_legend():
+    return [Patch(facecolor="#7A0200", edgecolor='black',
+                  label='SchedBackfill'),
+            Patch(facecolor="#246A73", edgecolor='black',
+                  label='SchedSubmit'),
+    ]
+
+
+def _sched_border_legend():
+    return [Patch(facecolor="white", edgecolor='#FF0400',
+                  label='SchedBackfill'),
+            Patch(facecolor="white", edgecolor='#00E1FF',
+                  label='SchedSubmit'),
+    ]
+
+
+def _sched_edge_color(job):
+    if "SchedBackfill" in job["flags"]:
+        return "#FF0400"
+    elif "SchedSubmit" in job["flags"]:
+        return "#00E1FF"
+    else:
+        return "black"
+
+
+def _default_edge_color(job):
+    return "black"
+
+
 class GanttVisualization(core.Visualization):
     """
     Visualization of a jobset as a Gantt chart.
@@ -165,12 +212,12 @@ class GanttVisualization(core.Visualization):
         }
 
         edge_coloration_methods = {
-            "default": self._default_edge_color,
-            "sched": self._sched_edge_color,
+            "default": _default_edge_color,
+            "sched": _sched_edge_color,
         }
 
         method_func = coloration_methods.get(colorationMethod, self._return_default_rectangle)
-        edge_func = edge_coloration_methods.get(edgeMethod, self._default_edge_color)
+        edge_func = edge_coloration_methods.get(edgeMethod, _default_edge_color)
         edge_color = edge_func(job)
         return method_func(job, x0, duration, height, itv, num_projects, num_users, num_top_users, partition_count,
                            edge_color)
@@ -283,17 +330,6 @@ class GanttVisualization(core.Visualization):
                 edgecolor=edge_color,
                 linewidth=0.5,
             )
-
-    def _sched_edge_color(self, job):
-        if "SchedBackfill" in job["flags"]:
-            return "#FF0400"
-        elif "SchedSubmit" in job["flags"]:
-            return "#00E1FF"
-        else:
-            return "black"
-
-    def _default_edge_color(self, job):
-        return "black"
 
     def _draw(
             self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default",
@@ -429,8 +465,8 @@ class GanttVisualization(core.Visualization):
         )
 
         legend_mapping = {
-            "exitstate": self._exitstate_legend,
-            "sched": self._sched_legend,
+            "exitstate": _exitstate_legend,
+            "sched": _sched_legend,
         }
 
         legend = legend_mapping.get(colorationMethod)
@@ -440,43 +476,12 @@ class GanttVisualization(core.Visualization):
             legend_elements = legend_func()
             self._ax.legend(handles=legend_elements, loc="upper left")
         if not legend:
-            edge_legend_mapping = {"sched": self._sched_border_legend}
+            edge_legend_mapping = {"sched": _sched_border_legend}
             legend = edge_legend_mapping.get(edgeMethod)
             if legend:
                 legend_func = edge_legend_mapping.get(edgeMethod)
                 legend_elements = legend_func()
                 self._ax.legend(handles=legend_elements, loc="upper left")
-
-    def _exitstate_legend(self):
-        return [Patch(facecolor="#35F500", edgecolor='black',
-                      label='COMPLETED'),
-                Patch(facecolor="#00FFEA", edgecolor='black',
-                      label='TIMEOUT'),
-                Patch(facecolor="#FF8604", edgecolor='black',
-                      label='CANCELLED'),
-                Patch(facecolor="#FF0000", edgecolor='black',
-                      label='FAILED'),
-                Patch(facecolor="#FFF700", edgecolor='black',
-                      label='NODE_FAIL'),
-                Patch(facecolor="#AE00FF", edgecolor='black',
-                      label='RUNNING'),
-                Patch(facecolor="#FF00AE", edgecolor='black',
-                      label='OUT_OF_MEMORY'),
-                ]
-
-    def _sched_legend(self):
-        return [Patch(facecolor="#7A0200", edgecolor='black',
-                      label='SchedBackfill'),
-                Patch(facecolor="#246A73", edgecolor='black',
-                      label='SchedSubmit'),
-        ]
-
-    def _sched_border_legend(self):
-        return [Patch(facecolor="white", edgecolor='#FF0400',
-                      label='SchedBackfill'),
-                Patch(facecolor="white", edgecolor='#00E1FF',
-                      label='SchedSubmit'),
-        ]
 
 
 class DiffGanttVisualization(GanttVisualization):
