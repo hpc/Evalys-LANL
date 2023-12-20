@@ -4,7 +4,8 @@ import functools
 
 import matplotlib.dates
 import matplotlib.patches
-import matplotlib.colors as mcolors
+from matplotlib.patches import Patch
+
 import numpy
 import pandas
 import os
@@ -159,6 +160,7 @@ class GanttVisualization(core.Visualization):
             "sched": self._return_sched_rectangle,
             "wait": self._return_wait_rectangle,
             "partition": self._return_partition_rectangle,
+            "exitstate": self._return_success_rectangle,
 
         }
 
@@ -170,7 +172,8 @@ class GanttVisualization(core.Visualization):
         method_func = coloration_methods.get(colorationMethod, self._return_default_rectangle)
         edge_func = edge_coloration_methods.get(edgeMethod, self._default_edge_color)
         edge_color = edge_func(job)
-        return method_func(job, x0, duration, height, itv, num_projects, num_users, num_top_users, partition_count, edge_color)
+        return method_func(job, x0, duration, height, itv, num_projects, num_users, num_top_users, partition_count,
+                           edge_color)
 
     def _return_default_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                   num_top_users=None, partition_count=None, edge_color="black"):
@@ -198,16 +201,49 @@ class GanttVisualization(core.Visualization):
             return self._create_rectangle(job, x0, duration, height, itv, self.top_user_color_map,
                                           palette=core.generate_palette(num_top_users), edge_color=edge_color)
         else:
-            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#C2C2C2", facecolor="#C2C2C2", edge_color=edge_color)
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#C2C2C2", facecolor="#C2C2C2",
+                                          edge_color=edge_color)
 
     def _return_sched_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                 num_top_users=None, partition_count=None, edge_color="black"):
         if "SchedBackfill" in job["flags"]:
-            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#7A0200", facecolor="#7A0200", edge_color=edge_color)
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#7A0200", facecolor="#7A0200",
+                                          edge_color=edge_color)
         elif "SchedSubmit" in job["flags"]:
-            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#246A73", facecolor="#246A73", edge_color=edge_color)
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#246A73", facecolor="#246A73",
+                                          edge_color=edge_color)
         else:
             return self._create_rectangle(job, x0, duration, height, itv, self.colorer, edge_color=edge_color)
+
+    def _return_success_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                                  num_top_users=None, partition_count=None, edge_color="black"):
+        if "COMPLETED" in job["success"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#35F500", facecolor="#35F500",
+                                          edge_color=edge_color)
+
+        elif "TIMEOUT" in job["success"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#00FFEA", facecolor="#00FFEA",
+                                          edge_color=edge_color)
+
+        elif "CANCELLED" in job["success"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FF8604", facecolor="#FF8604",
+                                          edge_color=edge_color)
+
+        elif "FAILED" in job["success"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FF0000", facecolor="#FF0000",
+                                          edge_color=edge_color)
+
+        elif "NODE_FAIL" in job["success"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FFF700", facecolor="#FFF000",
+                                          edge_color=edge_color)
+
+        elif "RUNNING" in job["success"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#AE00FF", facecolor="#AE00FF",
+                                          edge_color=edge_color)
+
+        elif "OUT_OF_MEMORY" in job["success"]:
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FF00AE", facecolor="#FF00AE",
+                                          edge_color=edge_color)
 
     def _return_wait_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                num_top_users=None, partition_count=None, edge_color="black"):
@@ -263,7 +299,8 @@ class GanttVisualization(core.Visualization):
             self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default",
             num_projects=None, num_users=None, num_top_users=None, partition_count=0, edgeMethod="default"
     ):
-        def _plot_job(job, colorationMethod="default", num_projects=None, num_top_users=None, partition_count=0, edgeMethod="default"):
+        def _plot_job(job, colorationMethod="default", num_projects=None, num_top_users=None, partition_count=0,
+                      edgeMethod="default"):
             x0 = job["starting_time"]
             duration = job["execution_time"]
             if job["purpose"] != "reservation":
@@ -368,13 +405,13 @@ class GanttVisualization(core.Visualization):
     ):
         column_mapping = {
             "project": self.COLUMNS + ("account", "account_name", "flags",),
-            "dependency": self.COLUMNS + ("dependency_chain_head","flags",),
-            "user": self.COLUMNS + ("user", "username", "user_id","flags",),
-            "user_top_20": self.COLUMNS + ("user", "username", "user_id","flags",),
+            "dependency": self.COLUMNS + ("dependency_chain_head", "flags",),
+            "user": self.COLUMNS + ("user", "username", "user_id", "flags",),
+            "user_top_20": self.COLUMNS + ("user", "username", "user_id", "flags",),
             "sched": self.COLUMNS + ("flags",),
-            "wait": self.COLUMNS + ("normalized_eligible_wait","flags",),
+            "wait": self.COLUMNS + ("normalized_eligible_wait", "flags",),
             "partition": self.COLUMNS + ("partition", "account", "normalized_account", "account_name", "flags",),
-            "exitstate": self.COLUMNS + ("success","flags",),
+            "exitstate": self.COLUMNS + ("success", "flags",),
         }
 
         df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS + ("flags",))]
@@ -390,6 +427,34 @@ class GanttVisualization(core.Visualization):
             xlim=(windowStartTime, windowFinishTime),
             ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
         )
+
+        legend_mapping = {
+            "exitstate": self._exitstate_legend,
+        }
+
+        legend = legend_mapping.get(colorationMethod)
+
+        if legend:
+            legend_func = legend_mapping.get(colorationMethod)
+            legend_elements = legend_func()
+            self._ax.legend(handles=legend_elements, loc="upper left")
+
+    def _exitstate_legend(self):
+        return [Patch(facecolor="#35F500", edgecolor='black',
+                      label='COMPLETED'),
+                Patch(facecolor="#00FFEA", edgecolor='black',
+                      label='TIMEOUT'),
+                Patch(facecolor="#FF8604", edgecolor='black',
+                      label='CANCELLED'),
+                Patch(facecolor="#FF0000", edgecolor='black',
+                      label='FAILED'),
+                Patch(facecolor="#FFF700", edgecolor='black',
+                      label='NODE_FAIL'),
+                Patch(facecolor="#AE00FF", edgecolor='black',
+                      label='RUNNING'),
+                Patch(facecolor="#FF00AE", edgecolor='black',
+                      label='OUT_OF_MEMORY'),
+                ]
 
 
 class DiffGanttVisualization(GanttVisualization):
