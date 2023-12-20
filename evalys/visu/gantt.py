@@ -430,6 +430,7 @@ class GanttVisualization(core.Visualization):
 
         legend_mapping = {
             "exitstate": self._exitstate_legend,
+            "sched": self._sched_legend,
         }
 
         legend = legend_mapping.get(colorationMethod)
@@ -455,6 +456,13 @@ class GanttVisualization(core.Visualization):
                 Patch(facecolor="#FF00AE", edgecolor='black',
                       label='OUT_OF_MEMORY'),
                 ]
+
+    def _sched_legend(self):
+        return [Patch(facecolor="#7A0200", edgecolor='black',
+                      label='SchedBackfill'),
+                Patch(facecolor="#246A73", edgecolor='black',
+                      label='SchedSubmit'),
+        ]
 
 
 class DiffGanttVisualization(GanttVisualization):
