@@ -4,6 +4,7 @@ import functools
 
 import matplotlib.dates
 import matplotlib.patches
+import matplotlib.colors as mcolors
 import numpy
 import pandas
 import os
@@ -74,7 +75,7 @@ class GanttVisualization(core.Visualization):
         super().__init__(lspec)
         self.title = title
         self.xscale = None
-        self.alpha = 0.4
+        self.alpha = 0.6
         self.colorer = self.round_robin_map
         self.labeler = lambda job: str(job["jobID"])
         self._columns = self.COLUMNS
