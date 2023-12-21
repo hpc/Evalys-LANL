@@ -32,7 +32,7 @@ def _exitstate_legend():
                   label='NODE_FAIL'),
             Patch(facecolor="#AE00FF", edgecolor='black',
                   label='RUNNING'),
-            Patch(facecolor="#FF00AE", edgecolor='black',
+            Patch(facecolor="#0019FF", edgecolor='black',
                   label='OUT_OF_MEMORY'),
             ]
 
@@ -264,6 +264,7 @@ class GanttVisualization(core.Visualization):
 
     def _return_success_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                   num_top_users=None, partition_count=None, edge_color="black"):
+        edge_color="black"
         if "COMPLETED" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#35F500", facecolor="#35F500",
                                           edge_color=edge_color)
@@ -289,7 +290,7 @@ class GanttVisualization(core.Visualization):
                                           edge_color=edge_color)
 
         elif "OUT_OF_MEMORY" in job["success"]:
-            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FF00AE", facecolor="#FF00AE",
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#0019FF", facecolor="#0019FF",
                                           edge_color=edge_color)
 
     def _return_wait_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
@@ -339,21 +340,23 @@ class GanttVisualization(core.Visualization):
                       edgeMethod="default"):
             x0 = job["starting_time"]
             duration = job["execution_time"]
-            if job["purpose"] != "reservation":
-                for itv in job["allocated_resources"].intervals():
-                    height = itv.sup - itv.inf + 1
-                    rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
-                                                      num_top_users, partition_count, num_users, edgeMethod)
+            try:
+                if job["purpose"] != "reservation":
+                    for itv in job["allocated_resources"].intervals():
+                        height = itv.sup - itv.inf + 1
+                        rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
+                                                          num_top_users, partition_count, num_users, edgeMethod)
+                        self._ax.add_artist(rect)
 
-                    self._ax.add_artist(rect)
-
-                    if colorationMethod == "user" or colorationMethod == "user_top_20":
-                        self._annotate(rect, str(job["username"]))
-                    if colorationMethod == "dependency":
-                        if job["dependency_chain_head"] != job["jobID"]:
-                            self._annotate(rect, str(job["dependency_chain_head"]))
-                    if colorationMethod == "project" or colorationMethod == "partition":
-                        self._annotate(rect, job["account_name"])
+                        if colorationMethod == "user" or colorationMethod == "user_top_20":
+                            self._annotate(rect, str(job["username"]))
+                        if colorationMethod == "dependency":
+                            if job["dependency_chain_head"] != job["jobID"]:
+                                self._annotate(rect, str(job["dependency_chain_head"]))
+                        if colorationMethod == "project" or colorationMethod == "partition":
+                            self._annotate(rect, job["account_name"])
+            except:
+                pass
 
                     # self._annotate(rect, self.labeler(job))
 
