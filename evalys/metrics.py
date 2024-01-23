@@ -61,7 +61,7 @@ def compute_load(
 
     # merge events and sort them
     event_df = (
-        start_event_df.append(stop_event_df, ignore_index=True)
+        start_event_df._append(stop_event_df, ignore_index=True)
         .sort_values(by="time")
         .reset_index(drop=True)
     )

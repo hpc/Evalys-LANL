@@ -452,8 +452,11 @@ class GanttVisualization(core.Visualization):
             "partition": self.COLUMNS + ("partition", "account", "normalized_account", "account_name", "flags",),
             "exitstate": self.COLUMNS + ("success", "flags",),
         }
+        if "flags" in df.head():
+            df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS + ("flags",))]
+        else:
+            df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS)]
 
-        df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS + ("flags",))]
 
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
