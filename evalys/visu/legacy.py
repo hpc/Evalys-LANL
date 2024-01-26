@@ -505,9 +505,9 @@ def plot_job_details(
     df = pd.DataFrame.copy(dataframe)
     df = df.sort_values(by="jobID")
 
-    df["submission_time"] = df["submission_time"] + time_offset
-    df["starting_time"] = df["submission_time"] + df["waiting_time"]
-    df["finish_time"] = df["starting_time"] + df["execution_time"]
+    df["submission_time"] = pd.to_datetime(df["submission_time"], unit='s') + pd.to_timedelta(time_offset, unit='s')
+    df["starting_time"] = pd.to_datetime(df["submission_time"]) + pd.to_timedelta(df["waiting_time"], unit='s')
+    df["finish_time"] = pd.to_datetime(df["starting_time"]) + pd.to_timedelta(df["execution_time"], unit='s')
 
     threshold = size * 1.05  # To separate the 3 "zones"
 
