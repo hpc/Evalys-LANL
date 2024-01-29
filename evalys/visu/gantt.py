@@ -44,6 +44,16 @@ def _sched_legend():
                   label='SchedSubmit'),
     ]
 
+def _wait_legend():
+    return [
+        Patch(facecolor="#95374F", edgecolor='black', alpha=1, label="Highest wait time"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0.75, label="High wait time"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0.5, label="Average wait time"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0.25, label="Low wait time"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0, label="Lowest wait time"),
+
+    ]
+
 
 def _sched_border_legend():
     return [Patch(facecolor="white", edgecolor='#FF0400',
@@ -473,6 +483,7 @@ class GanttVisualization(core.Visualization):
         legend_mapping = {
             "exitstate": _exitstate_legend,
             "sched": _sched_legend,
+            "wait": _wait_legend,
         }
 
         legend = legend_mapping.get(colorationMethod)

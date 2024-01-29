@@ -722,6 +722,7 @@ def plot_load(
     ax.grid(True)
     ax.legend()
     ax.set_ylabel("Machines")
+    plt.tight_layout()
 
 
 def plot_binned_load(
