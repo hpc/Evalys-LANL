@@ -44,7 +44,7 @@ def compute_load(
     # - still running jobs (runtime = -1)
     # - not scheduled jobs (wait = -1)
     # - no procs allocated (proc_alloc = -1)
-    max_time = df["finish_time"].max() + 1000
+    max_time = df["finish_time"].max() + pd.Timedelta(seconds=1000)
     df.loc[df["execution_time"] == -1, "finish_time"] = max_time
     df.loc[df["execution_time"] == -1, "starting_time"] = max_time
     if "proc_alloc" in df:

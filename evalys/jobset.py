@@ -233,6 +233,7 @@ class JobSet(object):
         divisor=None,
         xAxisTermination=None,
         timeline=False,
+        utilizationOnly=True,
     ):
         nrows = 1
         if with_details and not binned and not average:
@@ -247,14 +248,22 @@ class JobSet(object):
         if title:
             fig.suptitle(title, fontsize=16)
         if ((not binned and not average) or timeline) and not simple:
+            try:
+                axeLen = len(axe)
+                ax = axe[0]
+            except TypeError:
+                ax=axe
             vleg.plot_load(
                 self.utilisation,
                 self.MaxProcs,
                 legend_label="utilisation",
-                ax=axe,
+                ax=ax,
                 normalize=normalize,
                 time_scale=time_scale,
+                windowStartTime=windowStartTime,
+                windowFinishTime=windowFinishTime,
             )
+
         elif average:
             fig.set_size_inches(20, 40)  # FIXME address this
             overallDf = pd.concat([self.df, longJs.df, largeJs.df])

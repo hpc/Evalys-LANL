@@ -650,6 +650,8 @@ def plot_load(
     legend_label="Load",
     UnixStartTime=0,
     TimeZoneString="UTC",
+    windowStartTime=False,
+    windowFinishTime=False,
 ):
     """
     Plots the number of used resources against time
@@ -715,6 +717,8 @@ def plot_load(
     # https://github.com/mwaskom/seaborn/issues/1071
 
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    if windowStartTime and windowFinishTime:
+        ax.set_xlim(windowStartTime, windowFinishTime)
     ax.grid(True)
     ax.legend()
     ax.set_ylabel("Machines")
