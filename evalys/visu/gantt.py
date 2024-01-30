@@ -20,6 +20,9 @@ def NOLABEL(_):
 
 
 def _exitstate_legend():
+    """
+    :return Legend for the exitstate coloration method
+    """
     return [Patch(facecolor="#35F500", edgecolor='black',
                   label='COMPLETED'),
             Patch(facecolor="#00FFEA", edgecolor='black',
@@ -38,6 +41,9 @@ def _exitstate_legend():
 
 
 def _sched_legend():
+    """
+    :return Legend for the scheduler job coloration method
+    """
     return [Patch(facecolor="#7A0200", edgecolor='black',
                   label='SchedBackfill'),
             Patch(facecolor="#246A73", edgecolor='black',
@@ -45,6 +51,9 @@ def _sched_legend():
     ]
 
 def _wait_legend():
+    """
+    :return a legend for the wait-time job coloration method
+    """
     return [
         Patch(facecolor="#95374F", edgecolor='black', alpha=1, label="Highest wait time"),
         Patch(facecolor="#95374F", edgecolor='black', alpha=0.75, label="High wait time"),
@@ -56,6 +65,9 @@ def _wait_legend():
 
 
 def _sched_border_legend():
+    """
+    :return: a legend for the scheduler border coloration of jobs
+    """
     return [Patch(facecolor="white", edgecolor='#FF0400',
                   label='SchedBackfill'),
             Patch(facecolor="white", edgecolor='#00E1FF',
@@ -64,6 +76,9 @@ def _sched_border_legend():
 
 
 def _sched_edge_color(job):
+    """
+    :return: the edge color from a job based on what scheduler was used to schedule it
+    """
     if "SchedBackfill" in job["flags"]:
         return "#FF0400"
     elif "SchedSubmit" in job["flags"]:
@@ -73,6 +88,9 @@ def _sched_edge_color(job):
 
 
 def _default_edge_color(job):
+    """
+    :return: the default edge color of a job
+    """
     return "black"
 
 
@@ -184,30 +202,54 @@ class GanttVisualization(core.Visualization):
 
     @staticmethod
     def round_robin_map(job, palette):
+        """
+        :return: a color to apply to :job based on :palette
+        """
         return palette[job["uniq_num"] % len(palette)]
 
     @staticmethod
     def project_color_map(job, palette):
+        """
+        :return: a color to apply to the job based on the corresponding project
+        """
         return palette[job["account"] - 1]
 
     @staticmethod
     def partition_color_map(job, palette):
+        """
+        :return: a color to apply to the job based on the corresponding partition
+        """
         return palette[job["partition"]]
 
     @staticmethod
     def dependency_color_map(job, palette):
+        """
+        :return: a color to apply to the job based on job dependency chains
+        """
         return palette[job["dependency_chain_head"] % len(palette)]
 
     @staticmethod
     def user_color_map(job, palette):
+        """
+        :return: a color to apply to the job based on the user who launched it
+        """
         return palette[job["user"]]
 
     @staticmethod
     def top_user_color_map(job, palette):
+        """
+        :return: a color to apply to a job based on the user who launched it, if that user is in the top X percent of users
+        """
         return palette[job["user_id"]]
 
     def _coloration_middleman(self, job, x0, duration, height, itv, colorationMethod="default", num_projects=None,
                               num_top_users=None, partition_count=0, num_users=None, edgeMethod="default"):
+        """
+        Taking into account the specified coloration method and edge coloration method, return the method to use to color jobs in the gantt chart.
+        :param colorationMethod: the method to apply to the coloration of the fill of the job
+        :param edgeMethod: the method to apply to the coloration of the edges of the job
+        :return: A composite method function to be used to apply coloration to each job in the gantt chart
+        """
         coloration_methods = {
             "default": self._return_default_rectangle,
             "project": self._return_project_rectangle if num_projects is not None else None,
@@ -231,6 +273,7 @@ class GanttVisualization(core.Visualization):
         edge_color = edge_func(job)
         return method_func(job, x0, duration, height, itv, num_projects, num_users, num_top_users, partition_count,
                            edge_color)
+
 
     def _return_default_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                   num_top_users=None, partition_count=None, edge_color="black"):
@@ -346,8 +389,14 @@ class GanttVisualization(core.Visualization):
             self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default",
             num_projects=None, num_users=None, num_top_users=None, partition_count=0, edgeMethod="default"
     ):
+        """
+        Draw a Gantt chart containing all jobs that fit within the window
+        """
         def _plot_job(job, colorationMethod="default", num_projects=None, num_top_users=None, partition_count=0,
                       edgeMethod="default"):
+            """
+            This function is used to plot each individual job
+            """
             x0 = job["starting_time"]
             duration = job["execution_time"]
             try:
@@ -424,6 +473,9 @@ class GanttVisualization(core.Visualization):
                     # TODO Annotate reservation with name/type/purpose
 
     def build(self, jobset):
+        """
+        Builds a gantt chart from the provided :jobset
+        """
         df = jobset.df.loc[:, self._columns]  # copy just what is needed
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
@@ -452,6 +504,9 @@ class GanttVisualization(core.Visualization):
             partition_count=0,
             edgeMethod="default",
     ):
+        """
+        Build a Gantt chart from a provided DataFrame
+        """
         column_mapping = {
             "project": self.COLUMNS + ("account", "account_name", "flags",),
             "dependency": self.COLUMNS + ("dependency_chain_head", "flags",),
