@@ -246,7 +246,6 @@ class JobSet(object):
         binned=False,
         simple=False,
         timeline=False,
-        power=False,
     ):
         """
         Create a gantt chart from the JobSet with more specific control over the chart.
@@ -285,7 +284,7 @@ class JobSet(object):
                 ax = axe[0]
             except TypeError:
                 ax=axe
-            if not power:
+            if not "consumedEnergy" in self.df.head():
                 vleg.plot_load(
                     self.utilisation,
                     self.MaxProcs,
@@ -296,7 +295,7 @@ class JobSet(object):
                     windowStartTime=windowStartTime,
                     windowFinishTime=windowFinishTime,
                 )
-            if power:
+            else:
                 vleg.plot_load(
                     self.utilisation,
                     self.MaxProcs,
@@ -314,6 +313,7 @@ class JobSet(object):
                     ),
                     normalize_power=False,
                 )
+                # TODO Automate power detection
 
         elif binned:
             fig.set_size_inches(30, 20)  # FIXME address this
