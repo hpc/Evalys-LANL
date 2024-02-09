@@ -60,9 +60,19 @@ def _wait_legend():
         Patch(facecolor="#95374F", edgecolor='black', alpha=0.5, label="Average wait time"),
         Patch(facecolor="#95374F", edgecolor='black', alpha=0.25, label="Low wait time"),
         Patch(facecolor="#95374F", edgecolor='black', alpha=0, label="Lowest wait time"),
-
     ]
 
+def _power_legend():
+    """
+    :return a legend for the power job coloration method
+    """
+    return [
+        Patch(facecolor="#95374F", edgecolor='black', alpha=1, label="Highest power factor"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0.75, label="High power factor"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0.5, label="Average power factor"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0.25, label="Low power factor"),
+        Patch(facecolor="#95374F", edgecolor='black', alpha=0, label="Lowest power factor"),
+    ]
 
 def _sched_border_legend():
     """
@@ -260,6 +270,7 @@ class GanttVisualization(core.Visualization):
             "wait": self._return_wait_rectangle,
             "partition": self._return_partition_rectangle,
             "exitstate": self._return_success_rectangle,
+            "power": self._return_power_rectangle,
 
         }
 
@@ -350,6 +361,11 @@ class GanttVisualization(core.Visualization):
                                num_top_users=None, partition_count=None, edge_color="black"):
         return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F",
                                       alpha=job["normalized_eligible_wait"], facecolor="#95374F", edge_color=edge_color)
+
+    def _return_power_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                               num_top_users=None, partition_count=None, edge_color="black"):
+        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F",
+                                      alpha=job["normalizedPowerFactor"], facecolor="#95374F", edge_color=edge_color)
 
     def _return_partition_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                     num_top_users=None, partition_count=None, edge_color="black"):
@@ -516,12 +532,24 @@ class GanttVisualization(core.Visualization):
             "wait": self.COLUMNS + ("normalized_eligible_wait", "flags",),
             "partition": self.COLUMNS + ("partition", "account", "normalized_account", "account_name", "flags",),
             "exitstate": self.COLUMNS + ("success", "flags",),
+            "power": self.COLUMNS + ("powerFactor",),
         }
+        # TODO Is the ordering of the code below having twice as many cols as needed?
         if "flags" in df.head():
             df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS + ("flags",))]
         else:
             df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS)]
 
+        # Calculate the 0.01 and 0.99 percentiles
+        df['powerFactor'].fillna(0, inplace=True)
+
+        percentile_001 = numpy.percentile(df['powerFactor'], 5)
+        percentile_099 = numpy.percentile(df['powerFactor'], 95)
+
+        # Normalize and round the values
+        df['normalizedPowerFactor'] = (df['powerFactor'] - percentile_001) / (percentile_099 - percentile_001)
+        df['normalizedPowerFactor'] = numpy.clip(df['normalizedPowerFactor'], 0, 1)  # Clip values to be between 0 and 1
+        df['normalizedPowerFactor'] = df['normalizedPowerFactor'].round(2)  # Round to 2 decimal places
 
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
@@ -539,6 +567,7 @@ class GanttVisualization(core.Visualization):
             "exitstate": _exitstate_legend,
             "sched": _sched_legend,
             "wait": _wait_legend,
+            "power": _power_legend,
         }
 
         legend = legend_mapping.get(colorationMethod)

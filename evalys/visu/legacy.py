@@ -652,6 +652,8 @@ def plot_load(
     TimeZoneString="UTC",
     windowStartTime=False,
     windowFinishTime=False,
+    power=None,
+    normalize_power=True,
 ):
     """
     Plots the number of used resources against time
@@ -660,6 +662,9 @@ def plot_load(
     """
     mean = metrics.load_mean(load)
     u = load.copy()
+    if power is not None:
+        # power_mean = metrics.load_mean(power)
+        p = power.copy()
 
     if time_scale:
         # make the time index a column
@@ -675,6 +680,12 @@ def plot_load(
         u.load = u.load / nb_resources
         mean = mean / nb_resources
 
+    if normalize_power:
+        max_power = p.load.max()
+        p.load = p.load / max_power
+        p.load = p.load * u.load.max()
+        # power_mean = power_mean / max_power
+
     # get an axe if not provided
     if ax is None:
         ax = plt.gca()
@@ -684,6 +695,11 @@ def plot_load(
 
     # plot load
     u.load.plot(drawstyle="steps-post", ax=ax, label=legend_label)
+
+    if power is not None:
+        par = ax.twinx()
+        p.load.plot(drawstyle="steps-post", ax=par, label="consumedEnergy", color="purple")
+
 
     # plot a line for max available area
     if nb_resources and not normalize:
@@ -703,6 +719,16 @@ def plot_load(
         linewidth=1,
         label="Mean {0} ({1:.2f})".format(legend_label, mean),
     )
+
+    # if power is not None:
+    #     ax.plot(
+    #         [p.index[0], p.index[-1]],
+    #         [power_mean, power_mean],
+    #         linestyle="--",
+    #         linewidth=1,
+    #         label="Mean {0} ({1:.2f})".format(legend_label, power_mean),
+    #     )
+
     sns.rugplot(u.load[u.load == 0].index, ax=ax, color="r")
     ax.scatter(
         [],
@@ -720,8 +746,13 @@ def plot_load(
     if windowStartTime and windowFinishTime:
         ax.set_xlim(windowStartTime, windowFinishTime)
     ax.grid(True)
-    ax.legend()
+
+    if power is not None:
+        par.legend(loc="lower right")
+        par.set_ylabel("consumedEnergy")
     ax.set_ylabel("Machines")
+    ax.set_xlabel("Time")
+    ax.legend(labelcolor="linecolor")
     plt.tight_layout()
 
 

@@ -246,6 +246,7 @@ class JobSet(object):
         binned=False,
         simple=False,
         timeline=False,
+        power=False,
     ):
         """
         Create a gantt chart from the JobSet with more specific control over the chart.
@@ -279,20 +280,40 @@ class JobSet(object):
             fig.suptitle(title, fontsize=16)
         if ((not binned) or timeline) and not simple:
             try:
+                # TODO What
                 axeLen = len(axe)
                 ax = axe[0]
             except TypeError:
                 ax=axe
-            vleg.plot_load(
-                self.utilisation,
-                self.MaxProcs,
-                legend_label="utilisation",
-                ax=ax,
-                normalize=normalize,
-                time_scale=time_scale,
-                windowStartTime=windowStartTime,
-                windowFinishTime=windowFinishTime,
-            )
+            if not power:
+                vleg.plot_load(
+                    self.utilisation,
+                    self.MaxProcs,
+                    legend_label="utilisation",
+                    ax=ax,
+                    normalize=normalize,
+                    time_scale=time_scale,
+                    windowStartTime=windowStartTime,
+                    windowFinishTime=windowFinishTime,
+                )
+            if power:
+                vleg.plot_load(
+                    self.utilisation,
+                    self.MaxProcs,
+                    legend_label="utilisation",
+                    ax=ax,
+                    normalize=normalize,
+                    time_scale=time_scale,
+                    windowStartTime=windowStartTime,
+                    windowFinishTime=windowFinishTime,
+                    power=compute_load(
+                        self.df,
+                        col_begin="starting_time",
+                        col_end="finish_time",
+                        col_cumsum="consumedEnergy",
+                    ),
+                    normalize_power=False,
+                )
 
         elif binned:
             fig.set_size_inches(30, 20)  # FIXME address this
