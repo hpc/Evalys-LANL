@@ -541,15 +541,16 @@ class GanttVisualization(core.Visualization):
             df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS)]
 
         # Calculate the 0.01 and 0.99 percentiles
-        df['powerFactor'].fillna(0, inplace=True)
+        if 'powerFactor' in df.head():
+            df['powerFactor'].fillna(0, inplace=True)
 
-        percentile_001 = numpy.percentile(df['powerFactor'], 5)
-        percentile_099 = numpy.percentile(df['powerFactor'], 95)
+            percentile_001 = numpy.percentile(df['powerFactor'], 5)
+            percentile_099 = numpy.percentile(df['powerFactor'], 95)
 
-        # Normalize and round the values
-        df['normalizedPowerFactor'] = (df['powerFactor'] - percentile_001) / (percentile_099 - percentile_001)
-        df['normalizedPowerFactor'] = numpy.clip(df['normalizedPowerFactor'], 0, 1)  # Clip values to be between 0 and 1
-        df['normalizedPowerFactor'] = df['normalizedPowerFactor'].round(2)  # Round to 2 decimal places
+            # Normalize and round the values
+            df['normalizedPowerFactor'] = (df['powerFactor'] - percentile_001) / (percentile_099 - percentile_001)
+            df['normalizedPowerFactor'] = numpy.clip(df['normalizedPowerFactor'], 0, 1)  # Clip values to be between 0 and 1
+            df['normalizedPowerFactor'] = df['normalizedPowerFactor'].round(2)  # Round to 2 decimal places
 
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
