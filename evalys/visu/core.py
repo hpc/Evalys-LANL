@@ -25,6 +25,22 @@ COLORBLIND_FRIENDLY_PALETTE = (
     ( .8,  .4,   0),  # vermillion
     ( .8,  .6,  .7),  # reddish purple
 )
+
+# PROJECT_PALETTE = (
+#     (0.27, 0.0, 0.33),
+#     (0.28, 0.19, 0.5),
+#     (0.21, 0.36, 0.55),
+#     (0.15, 0.5, 0.56),
+#     (0.12, 0.63, 0.53),
+#     (0.29, 0.76, 0.43),
+#     (0.63, 0.85, 0.22),
+#     (0.99, 0.91, 0.14),
+# )
+#
+# PARTITION_PALETTE = (
+#
+# )
+
 # pylint: enable=bad-whitespace
 
 
