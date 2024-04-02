@@ -15,6 +15,8 @@ import os
 from . import core
 from .. import utils
 
+PALETTE_USED = None
+
 
 def NOLABEL(_):
     """Labeler strategy disabling the labeling of jobs."""
@@ -75,6 +77,42 @@ def _power_legend():
         Patch(facecolor=mcolors.to_rgba("#95374F", alpha=0.25), edgecolor='black', label="Low power factor"),
         Patch(facecolor=mcolors.to_rgba("#95374F", alpha=0), edgecolor='black', label="Lowest power factor"),
     ]
+
+def _partition_legend(df):
+    try:
+        legend_patches = []
+
+        partition_mapping_df = df[['partition_name', 'partition']].drop_duplicates()
+
+        # Sort the DataFrame by partition_mapping column in ascending order
+        partition_mapping_df = partition_mapping_df.sort_values(by='partition')
+        project_mapping_df = df[["normalized_account", "account_name"]].drop_duplicates().sort_values(by='normalized_account')
+        # TODO Add Alpha
+        i = 0
+        for rgba in PALETTE_USED:
+            facecolor = mcolors.to_rgba(rgba, alpha=1.0)  # Convert RGBA to color
+            legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=partition_mapping_df['partition_name'][partition_mapping_df.index[i]]))
+            i+=1
+        return legend_patches
+    except:
+        print("Palette not used")
+
+# def _project_legend(df):
+#     try:
+#         legend_patches = []
+#
+#         project_mapping_df = df[['project_name', 'project']].drop_duplicates()
+#
+#         # Sort the DataFrame by partition_mapping column in ascending order
+#         project_mapping_df = project_mapping_df.sort_values(by='project')
+#         i = 0
+#         for rgba in PALETTE_USED:
+#             facecolor = mcolors.to_rgba(rgba, alpha=1.0)  # Convert RGBA to color
+#             legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=project_mapping_df['project_name'][project_mapping_df.index[i]]))
+#             i+=1
+#         return legend_patches
+#     except:
+#         print("Palette not used")
 
 def _sched_border_legend():
     """
@@ -284,98 +322,101 @@ class GanttVisualization(core.Visualization):
         method_func = coloration_methods.get(colorationMethod, self._return_default_rectangle)
         edge_func = edge_coloration_methods.get(edgeMethod, _default_edge_color)
         edge_color = edge_func(job)
-        return method_func(job, x0, duration, height, itv, num_projects, num_users, num_top_users, partition_count,
-                           edge_color)
+
+
+
+        return method_func(job, x0, duration, height, itv, num_projects, num_users, num_top_users, partition_count, edge_color)
 
 
     def _return_default_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                   num_top_users=None, partition_count=None, edge_color="black"):
-        return self._create_rectangle(job, x0, duration, height, itv, self.colorer, edge_color=edge_color), None
+        return self._create_rectangle(job, x0, duration, height, itv, self.colorer, edge_color=edge_color)
 
     def _return_project_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                   num_top_users=None, partition_count=None, edge_color="black"):
         palette_used = core.generate_palette(num_projects)
         return self._create_rectangle(job, x0, duration, height, itv, self.project_color_map, edge_color=edge_color,
-                                      palette=palette_used), palette_used
+                                      palette=palette_used)
 
     def _return_dependency_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                      num_top_users=None, partition_count=None, edge_color="black"):
         palette_used = core.generate_palette(8)
         return self._create_rectangle(job, x0, duration, height, itv, self.dependency_color_map,
-                                      palette=palette_used, edge_color=edge_color), palette_used
+                                      palette=palette_used, edge_color=edge_color)
 
     def _return_user_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                num_top_users=None, partition_count=None, edge_color="black"):
         palette_used = core.generate_palette(num_users + 1)
         return self._create_rectangle(job, x0, duration, height, itv, self.user_color_map,
-                                      palette=palette_used, edge_color=edge_color), palette_used
+                                      palette=palette_used, edge_color=edge_color)
 
     def _return_top_user_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                    num_top_users=None, partition_count=None, edge_color="black"):
         if job["user_id"] != 0:
             palette_used = core.generate_palette(num_top_users)
             return self._create_rectangle(job, x0, duration, height, itv, self.top_user_color_map,
-                                          palette=palette_used, edge_color=edge_color), palette_used
+                                          palette=palette_used, edge_color=edge_color)
         else:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#C2C2C2", facecolor="#C2C2C2",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
     def _return_sched_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                 num_top_users=None, partition_count=None, edge_color="black"):
         if "SchedBackfill" in job["flags"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#7A0200", facecolor="#7A0200",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
         elif "SchedSubmit" in job["flags"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#246A73", facecolor="#246A73",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
         else:
-            return self._create_rectangle(job, x0, duration, height, itv, self.colorer, edge_color=edge_color), None
+            return self._create_rectangle(job, x0, duration, height, itv, self.colorer, edge_color=edge_color)
 
     def _return_success_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                   num_top_users=None, partition_count=None, edge_color="black"):
         edge_color="black"
         if "COMPLETED" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#35F500", facecolor="#35F500",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
         elif "TIMEOUT" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#00FFEA", facecolor="#00FFEA",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
         elif "CANCELLED" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FF8604", facecolor="#FF8604",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
         elif "FAILED" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FF0000", facecolor="#FF0000",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
         elif "NODE_FAIL" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#FFF700", facecolor="#FFF000",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
         elif "RUNNING" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#AE00FF", facecolor="#AE00FF",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
         elif "OUT_OF_MEMORY" in job["success"]:
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#0019FF", facecolor="#0019FF",
-                                          edge_color=edge_color), None
+                                          edge_color=edge_color)
 
     def _return_wait_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                num_top_users=None, partition_count=None, edge_color="black"):
-        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F", facecolor=mcolors.to_rgba("#95374F", alpha=job["normalized_eligible_wait"]), edge_color=edge_color, alphaOverride=True), None
+        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F", facecolor=mcolors.to_rgba("#95374F", alpha=job["normalized_eligible_wait"]), edge_color=edge_color, alphaOverride=True)
 
     def _return_power_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                num_top_users=None, partition_count=None, edge_color="black"):
-        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F", facecolor=mcolors.to_rgba("#95374F", alpha=job["normalizedPowerFactor"]), edge_color=edge_color, alphaOverride=True), None
+        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F", facecolor=mcolors.to_rgba("#95374F", alpha=job["normalizedPowerFactor"]), edge_color=edge_color, alphaOverride=True)
 
     def _return_partition_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                     num_top_users=None, partition_count=None, edge_color="black"):
-        palette_used = core.generate_palette(partition_count)
+        global PALETTE_USED
+        PALETTE_USED = core.generate_palette(partition_count)
         return self._create_rectangle(job, x0, duration, height, itv, self.partition_color_map,
                                       alpha=job["normalized_account"], edge_color=edge_color,
-                                      palette=palette_used), palette_used
+                                      palette=PALETTE_USED)
 
     def _create_rectangle(self, job, x0, duration, height, itv, color_func, alpha=-1, edge_color="black", palette=None,
                           facecolor=None, alphaOverride=False):
@@ -432,7 +473,7 @@ class GanttVisualization(core.Visualization):
                 if job["purpose"] != "reservation":
                     for itv in job["allocated_resources"].intervals():
                         height = itv.sup - itv.inf + 1
-                        rect, palette_used = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
+                        rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
                                                           num_top_users, partition_count, num_users, edgeMethod)
                         self._ax.add_artist(rect)
 
@@ -443,8 +484,11 @@ class GanttVisualization(core.Visualization):
                                 self._annotate(rect, str(job["dependency_chain_head"]))
                         if colorationMethod == "project" or colorationMethod == "partition":
                             self._annotate(rect, job["account_name"])
-            except:
+            except Exception as e:
+                print("An error occurred:", e)
                 pass
+
+
 
                     # self._annotate(rect, self.labeler(job))
 
@@ -501,6 +545,7 @@ class GanttVisualization(core.Visualization):
                         self._ax.add_artist(rect)
                     # TODO Annotate reservation with name/type/purpose
 
+
     def build(self, jobset):
         """
         Builds a gantt chart from the provided :jobset
@@ -543,7 +588,7 @@ class GanttVisualization(core.Visualization):
             "user_top_20": self.COLUMNS + ("user", "username", "user_id", "flags",),
             "sched": self.COLUMNS + ("flags",),
             "wait": self.COLUMNS + ("normalized_eligible_wait", "flags",),
-            "partition": self.COLUMNS + ("partition", "account", "normalized_account", "account_name", "flags",),
+            "partition": self.COLUMNS + ("partition", "partition_name", "account", "normalized_account", "account_name", "flags",),
             "exitstate": self.COLUMNS + ("success", "flags",),
             "power": self.COLUMNS + ("powerFactor",),
         }
@@ -577,18 +622,24 @@ class GanttVisualization(core.Visualization):
             ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
         )
 
+
         legend_mapping = {
             "exitstate": _exitstate_legend,
             "sched": _sched_legend,
             "wait": _wait_legend,
             "power": _power_legend,
+            "partition": _partition_legend,
         }
 
         legend = legend_mapping.get(colorationMethod)
 
+
         if legend:
             legend_func = legend_mapping.get(colorationMethod)
-            legend_elements = legend_func()
+            if colorationMethod in ["exitstate", "sched", "wait", "power"]:
+                legend_elements = legend_func()
+            elif colorationMethod == "partition":
+                legend_elements = legend_func(df)
             self._ax.legend(handles=legend_elements, loc="upper left")
         if not legend:
             edge_legend_mapping = {"sched": _sched_border_legend}
