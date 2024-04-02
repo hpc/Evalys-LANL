@@ -4,6 +4,7 @@ import functools
 
 import matplotlib.dates
 import matplotlib.patches
+import pandas as pd
 from matplotlib.patches import Patch
 import matplotlib.colors as mcolors
 
@@ -78,24 +79,43 @@ def _power_legend():
         Patch(facecolor=mcolors.to_rgba("#95374F", alpha=0), edgecolor='black', label="Lowest power factor"),
     ]
 
-def _partition_legend(df):
+def _partition_legend(df, projects=False):
     try:
         legend_patches = []
 
-        partition_mapping_df = df[['partition_name', 'partition']].drop_duplicates()
+        if projects==False:
+            partition_mapping_df = df[['partition_name', 'partition']].drop_duplicates()
 
-        # Sort the DataFrame by partition_mapping column in ascending order
-        partition_mapping_df = partition_mapping_df.sort_values(by='partition')
-        project_mapping_df = df[["normalized_account", "account_name"]].drop_duplicates().sort_values(by='normalized_account')
-        # TODO Add Alpha
-        i = 0
-        for rgba in PALETTE_USED:
-            facecolor = mcolors.to_rgba(rgba, alpha=1.0)  # Convert RGBA to color
-            legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=partition_mapping_df['partition_name'][partition_mapping_df.index[i]]))
-            i+=1
+            # Sort the DataFrame by partition_mapping column in ascending order
+            partition_mapping_df = partition_mapping_df.sort_values(by='partition')
+            project_mapping_df = df[["normalized_account", "account_name"]].drop_duplicates().sort_values(by='normalized_account')
+            # TODO Add Alpha
+            i = 0
+            for rgba in PALETTE_USED:
+                facecolor = mcolors.to_rgba(rgba, alpha=1.0)  # Convert RGBA to color
+                legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=partition_mapping_df['partition_name'][partition_mapping_df.index[i]]))
+                i+=1
+        else:
+            partition_mapping_df = df[["normalized_account", "account_name", "partition_name", "partition"]].drop_duplicates().sort_values(by='normalized_account')
+
+            # Map the palette values back to their partitions
+            i = 0
+            partition_color_alpha = []
+            for rgba in PALETTE_USED:
+                partition_color_alpha.append([i, PALETTE_USED[i][0:3], PALETTE_USED[i][3]])
+                i+=1
+            partition_color_alpha_df = pd.DataFrame(partition_color_alpha, columns=['partition', 'rgba', 'alpha'])
+            partition_mapping_df = partition_mapping_df.join(partition_color_alpha_df.set_index('partition'), on='partition').sort_values(by=['partition', 'normalized_account'])
+            df.head()
+            print(partition_mapping_df)
+            for index, row in partition_mapping_df.iterrows():
+                facecolor = mcolors.to_rgba(row['rgba'], alpha=row['normalized_account'])
+                legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=row["partition_name"]+" - " + row["account_name"]))
+
+
         return legend_patches
-    except:
-        print("Palette not used")
+    except Exception as e:
+        print(e)
 
 # def _project_legend(df):
 #     try:
@@ -639,7 +659,7 @@ class GanttVisualization(core.Visualization):
             if colorationMethod in ["exitstate", "sched", "wait", "power"]:
                 legend_elements = legend_func()
             elif colorationMethod == "partition":
-                legend_elements = legend_func(df)
+                legend_elements = legend_func(df, True)
             self._ax.legend(handles=legend_elements, loc="upper left")
         if not legend:
             edge_legend_mapping = {"sched": _sched_border_legend}
