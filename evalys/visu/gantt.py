@@ -88,7 +88,7 @@ def _partition_legend(df, projects=False):
 
             # Sort the DataFrame by partition_mapping column in ascending order
             partition_mapping_df = partition_mapping_df.sort_values(by='partition')
-            project_mapping_df = df[["normalized_account", "account_name"]].drop_duplicates().sort_values(by='normalized_account')
+            # project_mapping_df = df[["normalized_account", "account_name"]].drop_duplicates().sort_values(by='normalized_account')
             # TODO Add Alpha
             i = 0
             for rgba in PALETTE_USED:
@@ -106,7 +106,6 @@ def _partition_legend(df, projects=False):
                 i+=1
             partition_color_alpha_df = pd.DataFrame(partition_color_alpha, columns=['partition', 'rgba', 'alpha'])
             partition_mapping_df = partition_mapping_df.join(partition_color_alpha_df.set_index('partition'), on='partition').sort_values(by=['partition', 'normalized_account'])
-            df.head()
             print(partition_mapping_df)
             for index, row in partition_mapping_df.iterrows():
                 facecolor = mcolors.to_rgba(row['rgba'], alpha=row['normalized_account'])
@@ -597,6 +596,7 @@ class GanttVisualization(core.Visualization):
             num_top_users=None,
             partition_count=0,
             edgeMethod="default",
+            project_in_legend=True,
     ):
         """
         Build a Gantt chart from a provided DataFrame
@@ -659,7 +659,7 @@ class GanttVisualization(core.Visualization):
             if colorationMethod in ["exitstate", "sched", "wait", "power"]:
                 legend_elements = legend_func()
             elif colorationMethod == "partition":
-                legend_elements = legend_func(df, True)
+                legend_elements = legend_func(df, project_in_legend)
             self._ax.legend(handles=legend_elements, loc="upper left")
         if not legend:
             edge_legend_mapping = {"sched": _sched_border_legend}
@@ -755,6 +755,7 @@ def plot_gantt_df(
         num_top_users=None,
         partition_count=0,
         edgeMethod="default",
+        project_in_legend=True,
         **kwargs
 ):
     """
@@ -788,6 +789,7 @@ def plot_gantt_df(
         num_top_users,
         partition_count,
         edgeMethod,
+        project_in_legend,
     )
     layout.show()
 
