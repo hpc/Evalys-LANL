@@ -116,22 +116,29 @@ def _partition_legend(df, projects=False):
     except Exception as e:
         print(e)
 
-# def _project_legend(df):
-#     try:
-#         legend_patches = []
-#
-#         project_mapping_df = df[['project_name', 'project']].drop_duplicates()
-#
-#         # Sort the DataFrame by partition_mapping column in ascending order
-#         project_mapping_df = project_mapping_df.sort_values(by='project')
-#         i = 0
-#         for rgba in PALETTE_USED:
-#             facecolor = mcolors.to_rgba(rgba, alpha=1.0)  # Convert RGBA to color
-#             legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=project_mapping_df['project_name'][project_mapping_df.index[i]]))
-#             i+=1
-#         return legend_patches
-#     except:
-#         print("Palette not used")
+def _project_legend(df):
+    try:
+        legend_patches = []
+
+        project_mapping_df = df[['account', 'normalized_account', 'account_name']].drop_duplicates().sort_values(by='normalized_account')
+        # Sort the DataFrame by partition_mapping column in ascending order
+        i = 0
+        project_color_alpha = []
+
+        for rgba in PALETTE_USED:
+            project_color_alpha.append([i, PALETTE_USED[i][0:3], PALETTE_USED[i][3]])
+            i+=1
+        project_color_alpha_df = pd.DataFrame(project_color_alpha, columns=['account', 'rgba', 'alpha'])
+        project_mapping_df = project_mapping_df.join(project_color_alpha_df.set_index('account'), on='account').sort_values(by=['account', 'normalized_account'])
+
+        i=0
+        for rgba in PALETTE_USED:
+            facecolor = mcolors.to_rgba(rgba, alpha=1.0)  # Convert RGBA to color
+            legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=project_mapping_df['account_name'][project_mapping_df.index[i]]))
+            i+=1
+        return legend_patches
+    except Exception as e:
+        print(e)
 
 def _sched_border_legend():
     """
@@ -353,9 +360,10 @@ class GanttVisualization(core.Visualization):
 
     def _return_project_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                   num_top_users=None, partition_count=None, edge_color="black"):
-        palette_used = core.generate_palette(num_projects)
+        global PALETTE_USED
+        PALETTE_USED = core.generate_palette(num_projects)
         return self._create_rectangle(job, x0, duration, height, itv, self.project_color_map, edge_color=edge_color,
-                                      palette=palette_used)
+                                      palette=PALETTE_USED)
 
     def _return_dependency_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                      num_top_users=None, partition_count=None, edge_color="black"):
@@ -602,7 +610,7 @@ class GanttVisualization(core.Visualization):
         Build a Gantt chart from a provided DataFrame
         """
         column_mapping = {
-            "project": self.COLUMNS + ("account", "account_name", "flags",),
+            "project": self.COLUMNS + ("account", "account_name", "normalized_account", "flags",),
             "dependency": self.COLUMNS + ("dependency_chain_head", "flags",),
             "user": self.COLUMNS + ("user", "username", "user_id", "flags",),
             "user_top_20": self.COLUMNS + ("user", "username", "user_id", "flags",),
@@ -649,6 +657,7 @@ class GanttVisualization(core.Visualization):
             "wait": _wait_legend,
             "power": _power_legend,
             "partition": _partition_legend,
+            "project": _project_legend,
         }
 
         legend = legend_mapping.get(colorationMethod)
@@ -660,6 +669,8 @@ class GanttVisualization(core.Visualization):
                 legend_elements = legend_func()
             elif colorationMethod == "partition":
                 legend_elements = legend_func(df, project_in_legend)
+            elif colorationMethod == "project":
+                legend_elements = legend_func(df)
             self._ax.legend(handles=legend_elements, loc="upper left")
         if not legend:
             edge_legend_mapping = {"sched": _sched_border_legend}
