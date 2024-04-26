@@ -512,7 +512,7 @@ class GanttVisualization(core.Visualization):
                         if colorationMethod == "project" or colorationMethod == "partition":
                             self._annotate(rect, job["account_name"])
             except Exception as e:
-                print("An error occurred:", e)
+                print("An error occurred at line 515 in _plot_job:", e)
                 pass
 
 
@@ -632,6 +632,10 @@ class GanttVisualization(core.Visualization):
 
             percentile_001 = numpy.percentile(df['powerFactor'], 5)
             percentile_099 = numpy.percentile(df['powerFactor'], 95)
+
+            if percentile_001==0.0 and percentile_099==0.0:
+                print('\033[91m'+"ERROR : I'm not recognizing any usable power data in the powerFactor column. Are you sure your system supports this type of data and its properly formatted?"+'\033[0m')
+                return 1
 
             # Normalize and round the values
             df['normalizedPowerFactor'] = (df['powerFactor'] - percentile_001) / (percentile_099 - percentile_001)
