@@ -683,6 +683,7 @@ class GanttVisualization(core.Visualization):
                 legend_func = edge_legend_mapping.get(edgeMethod)
                 legend_elements = legend_func()
                 self._ax.legend(handles=legend_elements, loc="upper left")
+        return 0
 
 
 class DiffGanttVisualization(GanttVisualization):
@@ -789,7 +790,7 @@ def plot_gantt_df(
     layout = core.SimpleLayout(wtitle=title, dimensions=dimensions)
     plot = layout.inject(GanttVisualization, spskey="all", title=title)
     utils.bulksetattr(plot, **kwargs)
-    plot.buildDf(
+    val = plot.buildDf(
         df,
         res_bounds,
         windowStartTime,
@@ -806,7 +807,10 @@ def plot_gantt_df(
         edgeMethod,
         project_in_legend,
     )
-    layout.show()
+    if val == 1:
+        return
+    elif val == 0:
+        layout.show()
 
 
 def plot_diff_gantt(jobsets, *, title="Gantt charts comparison", **kwargs):
