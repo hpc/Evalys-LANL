@@ -12,6 +12,12 @@ def generate_palette(size):
     """
     return list(matplotlib.pyplot.cm.viridis(numpy.linspace(0, 1, size)))
 
+def generate_redgreen_palette(size):
+    """
+    Return a discrete palette from red to green with the specified number of different colors
+    """
+    return list(matplotlib.colors.LinearSegmentedColormap.from_list("RedToGreen", ["red", "green"])(numpy.linspace(0, 1, size)))
+
 
 # pylint: disable=bad-whitespace
 COLORBLIND_FRIENDLY_PALETTE = (

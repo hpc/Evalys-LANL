@@ -30,7 +30,7 @@ def _exitstate_legend():
     """
     return [Patch(facecolor="#35F500", edgecolor='black',
                   label='COMPLETED'),
-            Patch(facecolor="#00FFEA", edgecolor='black',
+            Patch(facecolor="#f6acc9", edgecolor='black',
                   label='TIMEOUT'),
             Patch(facecolor="#FF8604", edgecolor='black',
                   label='CANCELLED'),
@@ -60,11 +60,8 @@ def _wait_legend():
     :return a legend for the wait-time job coloration method
     """
     return [
-        Patch(facecolor="#95374F", edgecolor='black', alpha=1, label="Highest wait time"),
-        Patch(facecolor="#95374F", edgecolor='black', alpha=0.75, label="High wait time"),
-        Patch(facecolor="#95374F", edgecolor='black', alpha=0.5, label="Average wait time"),
-        Patch(facecolor="#95374F", edgecolor='black', alpha=0.25, label="Low wait time"),
-        Patch(facecolor="#95374F", edgecolor='black', alpha=0, label="Lowest wait time"),
+        Patch(facecolor="green", edgecolor='black', alpha=1, label="Low wait time"),
+        Patch(facecolor="red", edgecolor='black', alpha=1, label="High wait time"),
     ]
 
 def _power_legend():
@@ -72,11 +69,8 @@ def _power_legend():
     :return a legend for the power job coloration method
     """
     return [
-        Patch(facecolor=mcolors.to_rgba("#95374F", alpha=1.0), edgecolor='black', label="Highest power factor"),
-        Patch(facecolor=mcolors.to_rgba("#95374F", alpha=0.75), edgecolor='black', label="High power factor"),
-        Patch(facecolor=mcolors.to_rgba("#95374F", alpha=0.5), edgecolor='black', label="Average power factor"),
-        Patch(facecolor=mcolors.to_rgba("#95374F", alpha=0.25), edgecolor='black', label="Low power factor"),
-        Patch(facecolor=mcolors.to_rgba("#95374F", alpha=0), edgecolor='black', label="Lowest power factor"),
+        Patch(facecolor="green", edgecolor='black', alpha=1, label="High power per node hour"),
+        Patch(facecolor="red", edgecolor='black', alpha=1, label="Low power per node hour"),
     ]
 
 def _partition_legend(df, projects=False):
@@ -106,7 +100,6 @@ def _partition_legend(df, projects=False):
                 i+=1
             partition_color_alpha_df = pd.DataFrame(partition_color_alpha, columns=['partition', 'rgba', 'alpha'])
             partition_mapping_df = partition_mapping_df.join(partition_color_alpha_df.set_index('partition'), on='partition').sort_values(by=['partition', 'normalized_account'])
-            print(partition_mapping_df)
             for index, row in partition_mapping_df.iterrows():
                 facecolor = mcolors.to_rgba(row['rgba'], alpha=row['normalized_account'])
                 legend_patches.append(Patch(facecolor=facecolor, edgecolor='black', label=row["partition_name"]+" - " + row["account_name"]))
@@ -273,8 +266,32 @@ class GanttVisualization(core.Visualization):
         rx, ry = rect.get_xy()
         cx, cy = rx + rect.get_width() / 2.0, ry + rect.get_height() / 2.0
         rect.axes.annotate(
-            label, (cx, cy), color="black", fontsize=1, ha="center", va="center"
+            label, (cx, cy), color="black", fontsize=10, ha="center", va="center"
         )
+
+    @staticmethod
+    def _rugplot_annotate(rect, label):
+        rx, ry = rect.get_xy()
+        y = label.strip("nid")
+        y = y.lstrip('0')
+        y = int(y)
+        rect.axes.annotate(
+            label, (rx, y), color="black", fontsize=10, ha="center", va="center"
+        )
+
+    @staticmethod
+    def wait_color_map(job, palette):
+        """
+        :Return: a color to apply to the job based on the pallete
+        """
+        return palette[job["normalized_eligible_wait"] - 1]
+    
+    @staticmethod
+    def power_color_map(job, palette):
+        """
+        :Return: a color to apply to the job based on the pallete
+        """
+        return palette[job["normalized_power_per_node_hour"] - 1]
 
     @staticmethod
     def round_robin_map(job, palette):
@@ -406,7 +423,7 @@ class GanttVisualization(core.Visualization):
                                           edge_color=edge_color)
 
         elif "TIMEOUT" in job["success"]:
-            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#00FFEA", facecolor="#00FFEA",
+            return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#f6acc9", facecolor="#f6acc9",
                                           edge_color=edge_color)
 
         elif "CANCELLED" in job["success"]:
@@ -429,13 +446,17 @@ class GanttVisualization(core.Visualization):
             return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#0019FF", facecolor="#0019FF",
                                           edge_color=edge_color)
 
-    def _return_wait_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+    def _return_wait_rectangle(self, job, x0, duration, height, itv,num_projects=None, num_users=None,
                                num_top_users=None, partition_count=None, edge_color="black"):
-        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F", facecolor=mcolors.to_rgba("#95374F", alpha=job["normalized_eligible_wait"]), edge_color=edge_color, alphaOverride=True)
+        global PALETTE_USED
+        PALETTE_USED = core.generate_redgreen_palette(100)
+        return self._create_rectangle(job, x0, duration, height, itv,  self.wait_color_map, edge_color=edge_color, palette=PALETTE_USED)
 
     def _return_power_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                num_top_users=None, partition_count=None, edge_color="black"):
-        return self._create_rectangle(job, x0, duration, height, itv, lambda _: "#95374F", facecolor=mcolors.to_rgba("#95374F", alpha=job["normalizedPowerFactor"]), edge_color=edge_color, alphaOverride=True)
+        global PALETTE_USED
+        PALETTE_USED = core.generate_redgreen_palette(100)
+        return self._create_rectangle(job, x0, duration, height, itv, self.power_color_map, edge_color=edge_color, palette=PALETTE_USED)
 
     def _return_partition_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                     num_top_users=None, partition_count=None, edge_color="black"):
@@ -501,16 +522,18 @@ class GanttVisualization(core.Visualization):
                     for itv in job["allocated_resources"].intervals():
                         height = itv.sup - itv.inf + 1
                         rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
-                                                          num_top_users, partition_count, num_users, edgeMethod)
+                                                            num_top_users, partition_count, num_users, edgeMethod)
                         self._ax.add_artist(rect)
 
-                        if colorationMethod == "user" or colorationMethod == "user_top_20":
-                            self._annotate(rect, str(job["username"]))
-                        if colorationMethod == "dependency":
-                            if job["dependency_chain_head"] != job["jobID"]:
-                                self._annotate(rect, str(job["dependency_chain_head"]))
-                        if colorationMethod == "project" or colorationMethod == "partition":
-                            self._annotate(rect, job["account_name"])
+                        # if colorationMethod == "user" or colorationMethod == "user_top_20":
+                        #     self._annotate(rect, str(job["username"]))
+                        # if colorationMethod == "dependency":
+                        #     if job["dependency_chain_head"] != job["jobID"]:
+                        #         self._annotate(rect, str(job["dependency_chain_head"]))
+                        # if colorationMethod == "project" or colorationMethod == "partition":
+                        #     self._annotate(rect, job["account_name"])
+                        if colorationMethod == "exitstate" and str(job["failedNode"]) != 'nan':
+                            self._rugplot_annotate(rect, str(job["failedNode"]))
             except Exception as e:
                 print("An error occurred at line 515 in _plot_job:", e)
                 pass
@@ -617,8 +640,8 @@ class GanttVisualization(core.Visualization):
             "sched": self.COLUMNS + ("flags",),
             "wait": self.COLUMNS + ("normalized_eligible_wait", "flags",),
             "partition": self.COLUMNS + ("partition", "partition_name", "account", "normalized_account", "account_name", "flags",),
-            "exitstate": self.COLUMNS + ("success", "flags",),
-            "power": self.COLUMNS + ("powerFactor",),
+            "exitstate": self.COLUMNS + ("success", "flags","failedNode",),
+            "power": self.COLUMNS + ("PowerPerNodeHour",),
         }
         # TODO Is the ordering of the code below having twice as many cols as needed?
         if "flags" in df.head():
@@ -627,20 +650,20 @@ class GanttVisualization(core.Visualization):
             df = df.loc[:, column_mapping.get(colorationMethod, self.COLUMNS)]
 
         # Calculate the 0.01 and 0.99 percentiles
-        if 'powerFactor' in df.head():
-            df['powerFactor'].fillna(0, inplace=True)
+        if 'PowerPerNodeHour' in df.head():
+            df['PowerPerNodeHour'].fillna(0, inplace=True)
 
-            percentile_001 = numpy.percentile(df['powerFactor'], 5)
-            percentile_099 = numpy.percentile(df['powerFactor'], 95)
+            percentile_001 = numpy.percentile(df['PowerPerNodeHour'], 5)
+            percentile_099 = numpy.percentile(df['PowerPerNodeHour'], 95)
 
             if percentile_001==0.0 and percentile_099==0.0:
-                print('\033[91m'+"ERROR : I'm not recognizing any usable power data in the powerFactor column. Are you sure your system supports this type of data and its properly formatted?"+'\033[0m')
+                print('\033[91m'+"ERROR : I'm not recognizing any usable power data in the PowerPerNodeHour column. Are you sure your system supports this type of data and its properly formatted?"+'\033[0m')
                 return 1
 
             # Normalize and round the values
-            df['normalizedPowerFactor'] = (df['powerFactor'] - percentile_001) / (percentile_099 - percentile_001)
-            df['normalizedPowerFactor'] = numpy.clip(df['normalizedPowerFactor'], 0, 1)  # Clip values to be between 0 and 1
-            df['normalizedPowerFactor'] = df['normalizedPowerFactor'].round(2)  # Round to 2 decimal places
+            df['normalizedPowerPerNodeHour'] = (df['PowerPerNodeHour'] - percentile_001) / (percentile_099 - percentile_001)
+            df['normalizedPowerPerNodeHour'] = numpy.clip(df['normalizedPowerPerNodeHour'], 0, 1)  # Clip values to be between 0 and 1
+            df['normalizedPowerPerNodeHour'] = df['normalizedPowerPerNodeHour'].round(2)  # Round to 2 decimal places
 
         self._adapt(df)  # extract the data required for the visualization
         self._customize_layout()  # prepare the layout for displaying the data
