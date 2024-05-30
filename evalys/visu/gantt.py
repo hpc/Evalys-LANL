@@ -83,6 +83,9 @@ def _wasted_time_legend():
     ]
 
 def _partition_legend(df, projects=False):
+    """
+    :return: a legend for the partition job coloration method
+    """
     try:
         legend_patches = []
 
@@ -119,6 +122,9 @@ def _partition_legend(df, projects=False):
         print(e)
 
 def _project_legend(df):
+    """
+    :return: a legend for the project job coloration
+    """
     try:
         legend_patches = []
 
@@ -272,6 +278,9 @@ class GanttVisualization(core.Visualization):
 
     @staticmethod
     def _annotate(rect, label):
+        """
+        This function is used to control how label annotations are applied to a chart
+        """
         rx, ry = rect.get_xy()
         cx, cy = rx + rect.get_width() / 2.0, ry + rect.get_height() / 2.0
         rect.axes.annotate(
@@ -280,6 +289,9 @@ class GanttVisualization(core.Visualization):
 
     @staticmethod
     def _rugplot_annotate(rect, label):
+        """
+        This function is used to control how label annotations are applied to the node failure rugplot
+        """
         rx, ry = rect.get_xy()
         y = label.strip("nid")
         y = y.lstrip('0')
