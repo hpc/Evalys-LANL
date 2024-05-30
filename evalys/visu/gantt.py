@@ -35,7 +35,7 @@ def _exitstate_legend():
             Patch(facecolor="#FF8604", edgecolor='black',
                   label='CANCELLED'),
             Patch(facecolor="#FF0000", edgecolor='black',
-                  label='FAILED'),
+                  label='JOB FAILED'),
             Patch(facecolor="#FFF700", edgecolor='black',
                   label='NODE_FAIL'),
             Patch(facecolor="#AE00FF", edgecolor='black',
@@ -71,6 +71,15 @@ def _power_legend():
     return [
         Patch(facecolor="green", edgecolor='black', alpha=1, label="High power per node hour"),
         Patch(facecolor="red", edgecolor='black', alpha=1, label="Low power per node hour"),
+    ]
+
+def _wasted_time_legend():
+    """
+    :return a legend for the power job coloration method
+    """
+    return [
+        Patch(facecolor="green", edgecolor='black', alpha=1, label="Low Wasted Time"),
+        Patch(facecolor="red", edgecolor='black', alpha=1, label="High Wasted Time"),
     ]
 
 def _partition_legend(df, projects=False):
@@ -292,6 +301,13 @@ class GanttVisualization(core.Visualization):
         :Return: a color to apply to the job based on the pallete
         """
         return palette[job["normalized_power_per_node_hour"] - 1]
+    
+    @staticmethod
+    def wasted_time_color_map(job, palette):
+        """
+        :Return: a color to apply to the job based on the pallete
+        """
+        return palette[job["normalized_wasted_time"] - 1]
 
     @staticmethod
     def round_robin_map(job, palette):
@@ -354,7 +370,7 @@ class GanttVisualization(core.Visualization):
             "partition": self._return_partition_rectangle,
             "exitstate": self._return_success_rectangle,
             "power": self._return_power_rectangle,
-
+            "wasted_time": self._return_wasted_time_rectangle,
         }
 
         edge_coloration_methods = {
@@ -457,6 +473,12 @@ class GanttVisualization(core.Visualization):
         global PALETTE_USED
         PALETTE_USED = core.generate_redgreen_palette(100)
         return self._create_rectangle(job, x0, duration, height, itv, self.power_color_map, edge_color=edge_color, palette=PALETTE_USED)
+    
+    def _return_wasted_time_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
+                               num_top_users=None, partition_count=None, edge_color="black"):
+        global PALETTE_USED
+        PALETTE_USED = core.generate_redgreen_palette(100)
+        return self._create_rectangle(job, x0, duration, height, itv, self.wasted_time_color_map, edge_color=edge_color, palette=PALETTE_USED)
 
     def _return_partition_rectangle(self, job, x0, duration, height, itv, num_projects=None, num_users=None,
                                     num_top_users=None, partition_count=None, edge_color="black"):
@@ -517,30 +539,30 @@ class GanttVisualization(core.Visualization):
             """
             x0 = job["starting_time"]
             duration = job["execution_time"]
-            try:
-                if job["purpose"] != "reservation":
-                    for itv in job["allocated_resources"].intervals():
-                        height = itv.sup - itv.inf + 1
-                        rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
-                                                            num_top_users, partition_count, num_users, edgeMethod)
-                        self._ax.add_artist(rect)
+            # try:
+            if job["purpose"] != "reservation":
+                for itv in job["allocated_resources"].intervals():
+                    height = itv.sup - itv.inf + 1
+                    rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
+                                                        num_top_users, partition_count, num_users, edgeMethod)
+                    self._ax.add_artist(rect)
 
-                        # if colorationMethod == "user" or colorationMethod == "user_top_20":
-                        #     self._annotate(rect, str(job["username"]))
-                        # if colorationMethod == "dependency":
-                        #     if job["dependency_chain_head"] != job["jobID"]:
-                        #         self._annotate(rect, str(job["dependency_chain_head"]))
-                        # if colorationMethod == "project" or colorationMethod == "partition":
-                        #     self._annotate(rect, job["account_name"])
-                        if colorationMethod == "exitstate" and str(job["failedNode"]) != 'nan':
-                            self._rugplot_annotate(rect, str(job["failedNode"]))
-            except Exception as e:
-                print("An error occurred at line 515 in _plot_job:", e)
-                pass
+                # if colorationMethod == "user" or colorationMethod == "user_top_20":
+                #     self._annotate(rect, str(job["username"]))
+                # if colorationMethod == "dependency":
+                #     if job["dependency_chain_head"] != job["jobID"]:
+                #         self._annotate(rect, str(job["dependency_chain_head"]))
+                # if colorationMethod == "project" or colorationMethod == "partition":
+                #     self._annotate(rect, job["account_name"])
+                if colorationMethod == "exitstate" and str(job["failedNode"]) != 'nan':
+                    self._rugplot_annotate(rect, str(job["failedNode"]))
+            # except Exception as e:
+            #     print("An error occurred at line 542 in _plot_job:", e)
+            #     pass
 
 
 
-                    # self._annotate(rect, self.labeler(job))
+                        # self._annotate(rect, self.labeler(job))
 
         df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects,
                  partition_count=partition_count, num_top_users=num_top_users, edgeMethod=edgeMethod)
@@ -642,6 +664,7 @@ class GanttVisualization(core.Visualization):
             "partition": self.COLUMNS + ("partition", "partition_name", "account", "normalized_account", "account_name", "flags",),
             "exitstate": self.COLUMNS + ("success", "flags","failedNode",),
             "power": self.COLUMNS + ("PowerPerNodeHour",),
+            "wasted_time": self.COLUMNS + ("normalized_wasted_time",),
         }
         # TODO Is the ordering of the code below having twice as many cols as needed?
         if "flags" in df.head():
@@ -685,6 +708,7 @@ class GanttVisualization(core.Visualization):
             "power": _power_legend,
             "partition": _partition_legend,
             "project": _project_legend,
+            "wasted_time": _wasted_time_legend,
         }
 
         legend = legend_mapping.get(colorationMethod)
@@ -692,7 +716,7 @@ class GanttVisualization(core.Visualization):
 
         if legend:
             legend_func = legend_mapping.get(colorationMethod)
-            if colorationMethod in ["exitstate", "sched", "wait", "power"]:
+            if colorationMethod in ["exitstate", "sched", "wait", "power", "wasted_time"]:
                 legend_elements = legend_func()
             elif colorationMethod == "partition":
                 legend_elements = legend_func(df, project_in_legend)
