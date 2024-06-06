@@ -675,7 +675,7 @@ class GanttVisualization(core.Visualization):
             "wait": self.COLUMNS + ("normalized_eligible_wait", "flags",),
             "partition": self.COLUMNS + ("partition", "partition_name", "account", "normalized_account", "account_name", "flags",),
             "exitstate": self.COLUMNS + ("success", "flags","failedNode",),
-            "power": self.COLUMNS + ("PowerPerNodeHour",),
+            "power": self.COLUMNS + ("PowerPerNodeHour", "normalized_power_per_node_hour"),
             "wasted_time": self.COLUMNS + ("normalized_wasted_time",),
         }
         # TODO Is the ordering of the code below having twice as many cols as needed?
