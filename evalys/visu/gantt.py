@@ -552,7 +552,7 @@ class GanttVisualization(core.Visualization):
             x0 = job["starting_time"]
             duration = job["execution_time"]
             # try:
-            if job["purpose"] != "reservation":
+            if job["purpose"] == "job":
                 for itv in job["allocated_resources"].intervals():
                     height = itv.sup - itv.inf + 1
                     rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
@@ -598,36 +598,35 @@ class GanttVisualization(core.Visualization):
 
         # If there are multiple reservations:
         elif resvSet != None:
+            style_mapping = {
+                'PreventMaint': ["#FF0000", r"/"],
+                'fixnodes': ["#3833ff", r"/"],
+                'GPUMaint': ["#b4ff33", r"/"],
+                'wlmtest': ["#ff33fe", r"//"],
+                'reservation': ["#FF0000", r"/"],
+                'DAT': ["#fffa33", r"///"],
+            }
             for row in resvSet:
+                colors = style_mapping.get(row['purpose'])
                 resvNodes = str(row["allocated_resources"])
                 resvNodes = resvNodes.split(" ")
                 for resvBlock in resvNodes:
                     pass
                     resvNodes = resvBlock.split("-")
                     startNode = int(resvNodes[0])
-                    if len(resvNodes) < 2:
-                        rect = matplotlib.patches.Rectangle(
+
+                    rect = matplotlib.patches.Rectangle(
                             (row["starting_time"], startNode),
                             row["execution_time"],
-                            1,
+                            1 if len(resvNodes) < 2 else int(resvNodes[1])-int(resvNodes[0]),
                             alpha=self.alpha,
-                            facecolor="#FF0000",
+                            facecolor=colors[0],
                             edgecolor="black",
                             linewidth=0.5,
+                            hatch=colors[1],
                         )
-                    else:
-                        height = int(resvNodes[1]) - int(resvNodes[0])
-                        rect = matplotlib.patches.Rectangle(
-                            (row["starting_time"], startNode),
-                            row["execution_time"],
-                            height,
-                            alpha=self.alpha,
-                            facecolor="#FF0000",
-                            edgecolor="black",
-                            linewidth=0.5,
-                        )
-                        self._ax.add_artist(rect)
-                    # TODO Annotate reservation with name/type/purpose
+
+                    self._ax.add_artist(rect)
 
 
     def build(self, jobset):
