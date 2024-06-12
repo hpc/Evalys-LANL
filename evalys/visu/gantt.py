@@ -44,6 +44,24 @@ def _exitstate_legend():
                   label='OUT_OF_MEMORY'),
             ]
 
+def _reservation_legend():
+    """
+    :returns: a legend for the reservation coloration methods
+    """
+    return [
+        Patch(facecolor="#a633ff", edgecolor='black',
+                label='PreventMaint', hatch=r"/"),
+        Patch(facecolor="#3833ff", edgecolor='black',
+                label='fixnodes', hatch=r"/"),
+        Patch(facecolor="#b4ff33", edgecolor='black',
+                label='GPUMaint', hatch=r"/"),
+        Patch(facecolor="#ff33fe", edgecolor='black',
+                label='wlmtest', hatch=r"/"),
+        Patch(facecolor="#a633ff", edgecolor='black',
+                label='reservation', hatch=r"/"),
+        Patch(facecolor="#fffa33", edgecolor='black',
+                label='DAT', hatch=r"/"),
+    ]
 
 def _sched_legend():
     """
@@ -619,7 +637,7 @@ class GanttVisualization(core.Visualization):
                             (row["starting_time"], startNode),
                             row["execution_time"],
                             1 if len(resvNodes) < 2 else int(resvNodes[1])-int(resvNodes[0]),
-                            alpha=self.alpha,
+                            alpha=1,
                             facecolor=colors[0],
                             edgecolor="black",
                             linewidth=0.5,
@@ -728,19 +746,19 @@ class GanttVisualization(core.Visualization):
         if legend:
             legend_func = legend_mapping.get(colorationMethod)
             if colorationMethod in ["exitstate", "sched", "wait", "power", "wasted_time"]:
-                legend_elements = legend_func()
+                legend_elements = legend_func() + _reservation_legend()
             elif colorationMethod == "partition":
-                legend_elements = legend_func(df, project_in_legend)
+                legend_elements = legend_func(df, project_in_legend) + _reservation_legend()
             elif colorationMethod == "project":
-                legend_elements = legend_func(df)
+                legend_elements = legend_func(df) + _reservation_legend()
             self._ax.legend(handles=legend_elements, loc="upper left")
         if not legend:
-            edge_legend_mapping = {"sched": _sched_border_legend}
-            legend = edge_legend_mapping.get(edgeMethod)
-            if legend:
-                legend_func = edge_legend_mapping.get(edgeMethod)
-                legend_elements = legend_func()
-                self._ax.legend(handles=legend_elements, loc="upper left")
+            # edge_legend_mapping = {"sched": _sched_border_legend}
+            # legend = edge_legend_mapping.get(edgeMethod)
+            # if legend:
+            #     legend_func = edge_legend_mapping.get(edgeMethod)
+            legend_elements = _reservation_legend
+            self._ax.legend(handles=_reservation_legend(), loc="upper left")
         return 0
 
 
