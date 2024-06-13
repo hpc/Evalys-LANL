@@ -612,7 +612,6 @@ class GanttVisualization(core.Visualization):
                 linewidth=0.5,
             )
             self._ax.add_artist(rect)
-            # TODO Annotate reservation with name/type/purpose
 
         # If there are multiple reservations:
         elif resvSet != None:

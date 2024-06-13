@@ -284,7 +284,7 @@ class JobSet(object):
                 ax = axe[0]
             except TypeError:
                 ax=axe
-            if not "consumedEnergy" in self.df.head():
+            if self.df["consumedEnergy"].unique().size <= 2:
                 vleg.plot_load(
                     self.utilisation,
                     self.MaxProcs,
@@ -313,7 +313,6 @@ class JobSet(object):
                     ),
                     normalize_power=False,
                 )
-                # TODO Automate power detection
 
         elif binned:
             fig.set_size_inches(30, 20)  # FIXME address this

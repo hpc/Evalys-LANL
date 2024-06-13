@@ -653,7 +653,7 @@ def plot_load(
     windowStartTime=False,
     windowFinishTime=False,
     power=None,
-    normalize_power=True,
+    normalize_power=False,
 ):
     """
     Plots the number of used resources against time
