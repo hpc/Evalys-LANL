@@ -25,6 +25,12 @@ exported file.
 * Free software: BSD license
 * Documentation: https://evalys.readthedocs.org.
 
+
+Extensions upon oar-team/evalys
+---------
+This repository provides a series of extensions to Evalys enabling visualization of a wide range of trends present on HPC clusters. Extensions include the addition of tools to highlight reservations, many new coloration methods to increase the visibility of a wide range of trends within the data. This was produced in conjunction with https://github.com/hpc/BatsimGantt-LANL, a tool to visualize outputs from our modified version of batsim (https://github.com/hpc/Batsim-LANL), and https://github.com/hpc/LiveGantt-LANL, a tool that uses Evalys to visualize current cluster state based on the output of Sacct on clusters running Slurm.
+
+
 Features
 --------
 
