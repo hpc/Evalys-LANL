@@ -36,10 +36,10 @@ if not version:
 
 setup(
     name='evalys',
-    author="Olivier Richard",
-    author_email='olivier.richard@imag.fr',
+    author="Vivian Hafener",
+    author_email='vhafener@lanl.gov',
     version=version,
-    url='https://github.com/oar-team/evalys',
+    url='https://github.com/hpc/Evalys-LANL',
     packages=find_packages(),
     install_requires=requirements,
     include_package_data=True,
