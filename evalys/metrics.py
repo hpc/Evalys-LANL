@@ -60,11 +60,11 @@ def compute_load(
     stop_event_df.columns = event_columns
 
     # merge events and sort them
-    event_df = (
-        start_event_df._append(stop_event_df, ignore_index=True)
-        .sort_values(by="time")
-        .reset_index(drop=True)
-    )
+    #event_df = (
+    #    start_event_df._append(stop_event_df, ignore_index=True)
+    #    .sort_values(by="time")
+    #    .reset_index(drop=True)
+    #)
 
     # FIXME Finish fixing this error
     # event_df = (
@@ -72,6 +72,8 @@ def compute_load(
     #     .sort_values(by="time")
     #     .reset_index(drop=True)
     # )
+    event_df = pd.concat([start_event_df, stop_event_df],
+        ignore_index=True).sort_values(by='time').reset_index(drop=True)
 
     # sum the event that happend at the same time and cummulate events
     load_df = pd.DataFrame(

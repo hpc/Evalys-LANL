@@ -425,11 +425,9 @@ class JobSet(object):
         stop_event_df.columns = event_columns
 
         # merge events and sort them
-        event_df = (
-            start_event_df.append(stop_event_df, ignore_index=True)
-            .sort_values(by=["time", "grab"])
-            .reset_index(drop=True)
-        )
+        event_df = pd.concat([start_event_df, stop_event_df],
+            ignore_index=True).sort_values(
+                by=['time', 'grab']).reset_index(drop=True)
 
         # cut events if necessary
         # reindex event_df
