@@ -1,6 +1,15 @@
 ===============================
-Evalys - Overview
+Evalys-LANL - Overview
 ===============================
+
+Copyright Notice
+----------------
+Extensions to the Evalys library Authored by Vivian Hafener are copyright © 2024 Triad National Security, LLC 
+Release Approved Under O#4697 - LANL-contributed enhancements to BatSim toolstack.
+
+The original Evalys library copyright (c) 2015, Olivier Richard and contributors.
+See AUTHORS for more details.
+
 
 .. image:: https://img.shields.io/pypi/v/evalys.svg
     :target: https://pypi.python.org/pypi/evalys
