@@ -12,6 +12,12 @@ def generate_palette(size):
     """
     return list(matplotlib.pyplot.cm.viridis(numpy.linspace(0, 1, size)))
 
+def generate_redgreen_palette(size):
+    """
+    Return a discrete palette from red to green with the specified number of different colors
+    """
+    return list(matplotlib.colors.LinearSegmentedColormap.from_list("RedToGreen", ["red", "green"])(numpy.linspace(0, 1, size)))
+
 
 # pylint: disable=bad-whitespace
 COLORBLIND_FRIENDLY_PALETTE = (
@@ -25,6 +31,22 @@ COLORBLIND_FRIENDLY_PALETTE = (
     ( .8,  .4,   0),  # vermillion
     ( .8,  .6,  .7),  # reddish purple
 )
+
+# PROJECT_PALETTE = (
+#     (0.27, 0.0, 0.33),
+#     (0.28, 0.19, 0.5),
+#     (0.21, 0.36, 0.55),
+#     (0.15, 0.5, 0.56),
+#     (0.12, 0.63, 0.53),
+#     (0.29, 0.76, 0.43),
+#     (0.63, 0.85, 0.22),
+#     (0.99, 0.91, 0.14),
+# )
+#
+# PARTITION_PALETTE = (
+#
+# )
+
 # pylint: enable=bad-whitespace
 
 
@@ -60,6 +82,12 @@ class EvalysLayout:
         Display the figure window.
         """
         self.fig.show()
+
+    def resize(self, width, height):
+        """
+        Resize the figure window
+        """
+        self.fig.set_size_inches(width, height)
 
     def inject(self, visu_cls, spskey, *args, **kwargs):
         """
@@ -107,8 +135,9 @@ class SimpleLayout(EvalysLayout):
     Simplest possible layout that uses all available space.
     """
 
-    def __init__(self, *, wtitle='Simple Figure'):
+    def __init__(self, *, wtitle='Simple Figure', dimensions=(6.4,4.8)):
         super().__init__(wtitle=wtitle)
+        self.resize(dimensions[0], dimensions[1])
         self.sps['all'] = matplotlib.gridspec.GridSpec(nrows=1, ncols=1)[0]
 
 
@@ -128,7 +157,6 @@ class Visualization:
         self._lspec = lspec
         self._ax = None
         self._set_axes()
-
         self.palette = generate_palette(8)
 
     def _set_axes(self):

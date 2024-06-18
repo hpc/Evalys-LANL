@@ -8,11 +8,10 @@ from procset import ProcInt, ProcSet
 from evalys.metrics import compute_load, load_mean, fragmentation_reis, fragmentation
 import warnings
 
-warnings.simplefilter(action="ignore", category=FutureWarning)
-import pandas as pd
-
 # FIXME Fix this
 
+warnings.simplefilter(action="ignore", category=FutureWarning)
+import pandas as pd
 
 class JobSet(object):
     """
@@ -107,8 +106,6 @@ class JobSet(object):
         if "job_id" in self.df.columns:
             self.df.rename(columns={"job_id": "jobID"}, inplace=True)
 
-        # TODO check consistency on calculated columns...
-
         # init cache
         self._utilisation = None
         self._queue = None
@@ -139,11 +136,23 @@ class JobSet(object):
 
     @classmethod
     def from_csv(cls, filename, resource_bounds=None):
+        """
+        Return a JobSet calculated from the provided CSV file.
+        :param filename: Name of CSV file to parse
+        :param resource_bounds: Resource bounds to apply to the JobSet. This can be correlated with Node IDs.
+        :return: a JobSet with the DF loaded from the given CSV file and resource_bounds.
+        """
         df = pd.read_csv(filename, converters=cls.__converters)
         return cls(df, resource_bounds=resource_bounds)
 
     @classmethod
     def from_df(cls, df, resource_bounds=None):
+        """
+        Return a JobSet calculated from the provided DataFrame.
+        :param df: The DataFrame to use in the JobSet
+        :param resource_bounds: Resource bounds to apply to the JobSet. This can be correlated with Node IDs.
+        :return: a JobSet with the DF loaded from the given DF and resource_bounds.
+        """
         return cls(df, resource_bounds=resource_bounds)
 
     def to_csv(self, filename):
@@ -166,12 +175,19 @@ class JobSet(object):
             )
 
     def gantt(self, time_scale=False, **kwargs):
+        """
+        Quickly and simply plot a Gantt chart for the JobSet.
+        """
         if time_scale:
             kwargs["xscale"] = "time"
         visu.plot_gantt(self, **kwargs)
 
     @property
     def utilisation(self):
+        """
+        Calculate the cluster utilization over time of the JobSet using metrics.compute_load
+        :return:
+        """
         if self._utilisation is not None:
             return self._utilisation
         self._utilisation = compute_load(
@@ -228,56 +244,76 @@ class JobSet(object):
         windowStartTime=None,
         windowFinishTime=None,
         binned=False,
-        average=False,
-        divisor=None,
-        xAxisTermination=None,
+        simple=False,
         timeline=False,
     ):
+        """
+        Create a gantt chart from the JobSet with more specific control over the chart.
+        :param longJs: Optional JobSet argument used in Binned chart type of BatsimGantt to contain jobs characterized as long
+        :param largeJs: Optional JobSet argument used in Binned chart type of BatsimGantt to contain jobs characterized as large
+        :param normalize: Optional boolean argument passed on to vleg.plot_load
+        :param with_details: Optional boolean argument indicating whether to create a plot with additional job details
+        :param time_scale: Optional boolean argument
+        :param title: Optional argument indicating the title to apply to the plot
+        :param with_gantt: Optional boolean argument that indicates whether a Gantt chart should be produced alongside the utilization plot
+        :param reservationStart: Optional argument used in BatsimGantt to indicate reservation details
+        :param reservationExec: Optional argument used in BatsimGantt to indicate reservation details
+        :param reservationNodes: Optional argument used in BatsimGantt to indicate reservation details
+        :param windowStartTime: Optional argument used by BatsimGantt and LiveGantt to indicate the start time of the window to chart
+        :param windowFinishTime: Optional argument used by BatsimGantt and LiveGantt to indicate the finish time of the window to chart
+        :param binned: Optional argument used by BatsimGantt to generate binned plots
+        :param simple: Optional argument used to indicate to produce a simple chart
+        :param timeline: Optional argument used by BatsimGantt to generate a timeline chart
+        """
         nrows = 1
-        if with_details and not binned and not average:
+        if with_details and not binned:
             nrows = nrows + 2
-        if (with_gantt) and not binned and not average:
+        if (with_gantt) and not binned:
             nrows = nrows + 1
-        if with_gantt and binned and not average:
+        if with_gantt and binned:
             nrows = nrows + 3
         fig, axe = plt.subplots(
             nrows=nrows, sharex=True, figsize=(12, 8)
         )  # FIXME I can override figsize here
         if title:
             fig.suptitle(title, fontsize=16)
-        if (not binned and not average) or timeline:
-            vleg.plot_load(
-                self.utilisation,
-                self.MaxProcs,
-                legend_label="utilisation",
-                ax=axe,
-                normalize=normalize,
-                time_scale=time_scale,
-            )
-        elif average:
-            fig.set_size_inches(20, 40)  # FIXME address this
-            overallDf = pd.concat([self.df, longJs.df, largeJs.df])
-            overallUtilization = compute_load(
-                overallDf,
-                col_begin="starting_time",
-                col_end="finish_time",
-                col_cumsum="proc_alloc",
-            )
+        if ((not binned) or timeline) and not simple:
+            try:
+                # TODO What
+                axeLen = len(axe)
+                ax = axe[0]
+            except TypeError:
+                ax=axe
+            if self.df["consumedEnergy"].unique().size <= 2:
+                vleg.plot_load(
+                    self.utilisation,
+                    self.MaxProcs,
+                    legend_label="utilisation",
+                    ax=ax,
+                    normalize=normalize,
+                    time_scale=time_scale,
+                    windowStartTime=windowStartTime,
+                    windowFinishTime=windowFinishTime,
+                )
+            else:
+                vleg.plot_load(
+                    self.utilisation,
+                    self.MaxProcs,
+                    legend_label="utilisation",
+                    ax=ax,
+                    normalize=normalize,
+                    time_scale=time_scale,
+                    windowStartTime=windowStartTime,
+                    windowFinishTime=windowFinishTime,
+                    power=compute_load(
+                        self.df,
+                        col_begin="starting_time",
+                        col_end="finish_time",
+                        col_cumsum="consumedEnergy",
+                    ),
+                    normalize_power=False,
+                )
 
-            vleg.plot_binned_load(
-                self.utilisation,
-                longJs.utilisation,
-                largeJs.utilisation,
-                self.MaxProcs,
-                legend_label="utilisation",
-                normalize=normalize,
-                time_scale=time_scale,
-                divisor=divisor,
-                loadOverall=overallUtilization,
-                reservationStartTime=reservationStart,
-                reservationFinishTime=reservationStart + reservationExec,
-                xAxisTermination=xAxisTermination,
-            )
         elif binned:
             fig.set_size_inches(30, 20)  # FIXME address this
             vleg.plot_binned_load(
@@ -347,6 +383,7 @@ class JobSet(object):
             )
 
     def detailed_utilisation(self):
+        # TODO I do not know what this does
         df = self.free_intervals()
         df["total"] = len(self.res_bounds) - df.free_itvs.apply(len)
         df.set_index("time", drop=True, inplace=True)
@@ -388,11 +425,9 @@ class JobSet(object):
         stop_event_df.columns = event_columns
 
         # merge events and sort them
-        event_df = (
-            start_event_df.append(stop_event_df, ignore_index=True)
-            .sort_values(by=["time", "grab"])
-            .reset_index(drop=True)
-        )
+        event_df = pd.concat([start_event_df, stop_event_df],
+            ignore_index=True).sort_values(
+                by=['time', 'grab']).reset_index(drop=True)
 
         # cut events if necessary
         # reindex event_df

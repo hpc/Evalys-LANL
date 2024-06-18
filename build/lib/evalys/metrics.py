@@ -44,7 +44,7 @@ def compute_load(
     # - still running jobs (runtime = -1)
     # - not scheduled jobs (wait = -1)
     # - no procs allocated (proc_alloc = -1)
-    max_time = df["finish_time"].max() + 1000
+    max_time = df["finish_time"].max() + pd.Timedelta(seconds=1000)
     df.loc[df["execution_time"] == -1, "finish_time"] = max_time
     df.loc[df["execution_time"] == -1, "starting_time"] = max_time
     if "proc_alloc" in df:
@@ -60,11 +60,11 @@ def compute_load(
     stop_event_df.columns = event_columns
 
     # merge events and sort them
-    event_df = (
-        start_event_df.append(stop_event_df, ignore_index=True)
-        .sort_values(by="time")
-        .reset_index(drop=True)
-    )
+    #event_df = (
+    #    start_event_df._append(stop_event_df, ignore_index=True)
+    #    .sort_values(by="time")
+    #    .reset_index(drop=True)
+    #)
 
     # FIXME Finish fixing this error
     # event_df = (
@@ -72,6 +72,8 @@ def compute_load(
     #     .sort_values(by="time")
     #     .reset_index(drop=True)
     # )
+    event_df = pd.concat([start_event_df, stop_event_df],
+        ignore_index=True).sort_values(by='time').reset_index(drop=True)
 
     # sum the event that happend at the same time and cummulate events
     load_df = pd.DataFrame(

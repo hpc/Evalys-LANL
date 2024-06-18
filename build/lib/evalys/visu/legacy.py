@@ -505,9 +505,9 @@ def plot_job_details(
     df = pd.DataFrame.copy(dataframe)
     df = df.sort_values(by="jobID")
 
-    df["submission_time"] = df["submission_time"] + time_offset
-    df["starting_time"] = df["submission_time"] + df["waiting_time"]
-    df["finish_time"] = df["starting_time"] + df["execution_time"]
+    df["submission_time"] = pd.to_datetime(df["submission_time"], unit='s') + pd.to_timedelta(time_offset, unit='s')
+    df["starting_time"] = pd.to_datetime(df["submission_time"]) + pd.to_timedelta(df["waiting_time"], unit='s')
+    df["finish_time"] = pd.to_datetime(df["starting_time"]) + pd.to_timedelta(df["execution_time"], unit='s')
 
     threshold = size * 1.05  # To separate the 3 "zones"
 
@@ -650,6 +650,10 @@ def plot_load(
     legend_label="Load",
     UnixStartTime=0,
     TimeZoneString="UTC",
+    windowStartTime=False,
+    windowFinishTime=False,
+    power=None,
+    normalize_power=False,
 ):
     """
     Plots the number of used resources against time
@@ -658,6 +662,9 @@ def plot_load(
     """
     mean = metrics.load_mean(load)
     u = load.copy()
+    if power is not None:
+        # power_mean = metrics.load_mean(power)
+        p = power.copy()
 
     if time_scale:
         # make the time index a column
@@ -673,6 +680,12 @@ def plot_load(
         u.load = u.load / nb_resources
         mean = mean / nb_resources
 
+    if normalize_power:
+        max_power = p.load.max()
+        p.load = p.load / max_power
+        p.load = p.load * u.load.max()
+        # power_mean = power_mean / max_power
+
     # get an axe if not provided
     if ax is None:
         ax = plt.gca()
@@ -682,6 +695,11 @@ def plot_load(
 
     # plot load
     u.load.plot(drawstyle="steps-post", ax=ax, label=legend_label)
+
+    if power is not None:
+        par = ax.twinx()
+        p.load.plot(drawstyle="steps-post", ax=par, label="consumedEnergy", color="purple")
+
 
     # plot a line for max available area
     if nb_resources and not normalize:
@@ -701,6 +719,16 @@ def plot_load(
         linewidth=1,
         label="Mean {0} ({1:.2f})".format(legend_label, mean),
     )
+
+    # if power is not None:
+    #     ax.plot(
+    #         [p.index[0], p.index[-1]],
+    #         [power_mean, power_mean],
+    #         linestyle="--",
+    #         linewidth=1,
+    #         label="Mean {0} ({1:.2f})".format(legend_label, power_mean),
+    #     )
+
     sns.rugplot(u.load[u.load == 0].index, ax=ax, color="r")
     ax.scatter(
         [],
@@ -715,9 +743,17 @@ def plot_load(
     # https://github.com/mwaskom/seaborn/issues/1071
 
     # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    if windowStartTime and windowFinishTime:
+        ax.set_xlim(windowStartTime, windowFinishTime)
     ax.grid(True)
-    ax.legend()
+
+    if power is not None:
+        par.legend(loc="lower right")
+        par.set_ylabel("consumedEnergy")
     ax.set_ylabel("Machines")
+    ax.set_xlabel("Time")
+    ax.legend(labelcolor="linecolor")
+    plt.tight_layout()
 
 
 def plot_binned_load(
@@ -986,7 +1022,7 @@ def plot_binned_load(
             ylim=(-10, (loadOverall.load.max() / divisor) + 10),
         )
     else:
-        # TODO Unhardcode this
+        # FIXME Unhardcode this
         ax.set(
             ylim=(-10, (1490) + 10),
         )
