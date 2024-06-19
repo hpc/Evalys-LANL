@@ -57,7 +57,7 @@ def _reservation_legend():
                 label='GPUMaint', hatch=r"/"),
         Patch(facecolor="#ff33fe", edgecolor='black',
                 label='wlmtest', hatch=r"/"),
-        Patch(facecolor="#a633ff", edgecolor='black',
+        Patch(facecolor="#FF0000", edgecolor='black',
                 label='reservation', hatch=r"/"),
         Patch(facecolor="#fffa33", edgecolor='black',
                 label='DAT', hatch=r"/"),
@@ -606,9 +606,10 @@ class GanttVisualization(core.Visualization):
                 (resvStart, startNode),
                 resvExecTime,
                 height,
-                alpha=self.alpha,
+                alpha=1,
                 facecolor="#FF0000",
                 edgecolor="black",
+                hatch= r"/",
                 linewidth=0.5,
             )
             self._ax.add_artist(rect)
@@ -758,6 +759,7 @@ class GanttVisualization(core.Visualization):
             #     legend_func = edge_legend_mapping.get(edgeMethod)
             legend_elements = _reservation_legend
             self._ax.legend(handles=_reservation_legend(), loc="upper left")
+
         return 0
 
 
