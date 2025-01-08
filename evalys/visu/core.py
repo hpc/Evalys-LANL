@@ -141,6 +141,15 @@ class SimpleLayout(EvalysLayout):
         self.sps['all'] = matplotlib.gridspec.GridSpec(nrows=1, ncols=1)[0]
 
 
+class DoubleLayout(EvalysLayout):
+    """
+    Layout that uses two rows to display utilization on clusters that have two blocks of non-contiguous NIDs
+    """
+    def __init__(self, *, wtitle='Two Pane Figure', dimensions=(6.4,9.6)):
+        super().__init__(wtitle=wtitle)
+        self.resize(dimensions[0], dimensions[1])
+        self.sps['all'] = matplotlib.gridspec.GridSpec(nrows=2, ncols=1)[0]
+
 class Visualization:
     """
     Base class to define visualizations.

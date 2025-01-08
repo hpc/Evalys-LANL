@@ -556,26 +556,45 @@ class GanttVisualization(core.Visualization):
                 )
 
     def _draw(
-            self, df, resvStart=None, resvExecTime=None, resvNodes=None, resvSet=None, colorationMethod="default",
-            num_projects=None, num_users=None, num_top_users=None, partition_count=0, edgeMethod="default"
+            self, 
+            df, 
+            resvStart=None, 
+            resvExecTime=None, 
+            resvNodes=None, 
+            resvSet=None, 
+            colorationMethod="default",
+            num_projects=None, 
+            num_users=None, 
+            num_top_users=None, 
+            partition_count=0, 
+            edgeMethod="default",
+            ax=None,
     ):
+        
+        if ax == None:
+            plot_ax = self._ax
+        else:
+            plot_ax = ax
+
         """
         Draw a Gantt chart containing all jobs that fit within the window
         """
-        def _plot_job(job, colorationMethod="default", num_projects=None, num_top_users=None, partition_count=0,
+        def _plot_job(job, plot_ax, colorationMethod="default", num_projects=None, num_top_users=None, partition_count=0,
                       edgeMethod="default"):
             """
             This function is used to plot each individual job
             """
             x0 = job["starting_time"]
             duration = job["execution_time"]
+            
             # try:
             if job["purpose"] == "job":
                 for itv in job["allocated_resources"].intervals():
                     height = itv.sup - itv.inf + 1
                     rect = self._coloration_middleman(job, x0, duration, height, itv, colorationMethod, num_projects,
                                                         num_top_users, partition_count, num_users, edgeMethod)
-                    self._ax.add_artist(rect)
+                    
+                    plot_ax.add_artist(rect)
 
                 # if colorationMethod == "user" or colorationMethod == "user_top_20":
                 #     self._annotate(rect, str(job["username"]))
@@ -594,7 +613,7 @@ class GanttVisualization(core.Visualization):
 
                         # self._annotate(rect, self.labeler(job))
 
-        df.apply(_plot_job, axis="columns", colorationMethod=colorationMethod, num_projects=num_projects,
+        df.apply(_plot_job, axis="columns", plot_ax=plot_ax, colorationMethod=colorationMethod, num_projects=num_projects,
                  partition_count=partition_count, num_top_users=num_top_users, edgeMethod=edgeMethod)
 
         # If there's a single reservation:
@@ -612,7 +631,7 @@ class GanttVisualization(core.Visualization):
                 hatch= r"/",
                 linewidth=0.5,
             )
-            self._ax.add_artist(rect)
+            plot_ax.add_artist(rect)
 
         # If there are multiple reservations:
         elif resvSet != None:
@@ -644,7 +663,7 @@ class GanttVisualization(core.Visualization):
                             hatch=colors[1],
                         )
 
-                    self._ax.add_artist(rect)
+                    plot_ax.add_artist(rect)
 
 
     def build(self, jobset):
@@ -679,6 +698,7 @@ class GanttVisualization(core.Visualization):
             partition_count=0,
             edgeMethod="default",
             project_in_legend=True,
+            double=False,
     ):
         """
         Build a Gantt chart from a provided DataFrame
@@ -717,17 +737,37 @@ class GanttVisualization(core.Visualization):
             df['normalizedPowerPerNodeHour'] = numpy.clip(df['normalizedPowerPerNodeHour'], 0, 1)  # Clip values to be between 0 and 1
             df['normalizedPowerPerNodeHour'] = df['normalizedPowerPerNodeHour'].round(2)  # Round to 2 decimal places
 
-        self._adapt(df)  # extract the data required for the visualization
-        self._customize_layout()  # prepare the layout for displaying the data
-        self._draw(
-            df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users, num_top_users,
-            partition_count, edgeMethod
-        )  # do the painting job
-        # My axis setting method
-        self._ax.set(
-            xlim=(windowStartTime, windowFinishTime),
-            ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
-        )
+
+        if double == False:
+            # Draw the plot
+            self._adapt(df)  # extract the data required for the visualization
+            self._customize_layout()  # prepare the layout for displaying the data
+            self._draw(
+                df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users, num_top_users,
+                partition_count, edgeMethod
+            )  # do the painting job
+            # My axis setting method
+            self._ax.set(
+                xlim=(windowStartTime, windowFinishTime),
+                ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
+            )
+        elif double == True:
+            # Construct the Axes
+            fig, axe = matplotlib.pyplot.subplots(nrows=2, sharex=True, figzise=(12,8)) # TODO Fix the figsize here
+            self._draw(
+                df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users, num_top_users,
+                partition_count, edgeMethod, axe[1]
+            )
+            # TODO Need to set the res_bounds for the axes individually
+            self._draw(
+                df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users, num_top_users,
+                partition_count, edgeMethod, axe[2]
+            )
+
+
+            
+
+
 
 
         legend_mapping = {
@@ -742,7 +782,7 @@ class GanttVisualization(core.Visualization):
 
         legend = legend_mapping.get(colorationMethod)
 
-
+        # TODO This contains elements that are likely only functional in single axes mode, not double
         if legend:
             legend_func = legend_mapping.get(colorationMethod)
             if colorationMethod in ["exitstate", "sched", "wait", "power", "wasted_time"]:
@@ -889,6 +929,66 @@ def plot_gantt_df(
     elif val == 0:
         layout.show()
 
+def plot_double_gantt_df( # TODO Needs plenty of work
+        df,
+        res_bounds,
+        res_bounds2,
+        windowStartTime,
+        windowFinishTime,
+        *,
+        title="Gantt chart",
+        resvStart=None,
+        resvExecTime=None,
+        resvNodes=None,
+        resvSet=None,
+        dimensions=(6.4, 9.6),
+        colorationMethod="default",
+        num_projects=None,
+        num_users=None,
+        num_top_users=None,
+        partition_count=0,
+        edgeMethod="default",
+        project_in_legend=True,
+        **kwargs
+):
+    """
+    Helper function to create a set of two Gantt charts of a workload.
+
+    :param jobset: The jobset under study.
+    :type jobset: ``JobSet``
+
+    :param title: The title of the window.
+    :type title: ``str``
+
+    :param \**kwargs:
+        The keyword arguments to be fed to the constructor of the visualization
+        class.
+    """
+    layout = core.DoubleLayout(wtitle=title, dimensions=dimensions)
+    plot = layout.inject(GanttVisualization, spskey="all", title=title)
+    utils.bulksetattr(plot, **kwargs)
+    val = plot.buildDf(
+        df,
+        res_bounds,
+        windowStartTime,
+        windowFinishTime,
+        resvStart,
+        resvExecTime,
+        resvNodes,
+        resvSet,
+        colorationMethod,
+        num_projects,
+        num_users,
+        num_top_users,
+        partition_count,
+        edgeMethod,
+        project_in_legend,
+        double=True,
+    )
+    if val == 1:
+        return
+    elif val == 0:
+        layout.show()
 
 def plot_diff_gantt(jobsets, *, title="Gantt charts comparison", **kwargs):
     """
