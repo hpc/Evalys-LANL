@@ -302,7 +302,7 @@ class GanttVisualization(core.Visualization):
         rx, ry = rect.get_xy()
         cx, cy = rx + rect.get_width() / 2.0, ry + rect.get_height() / 2.0
         rect.axes.annotate(
-            label, (cx, cy), color="black", fontsize=10, ha="center", va="center"
+            label, (cx, cy), color="black", fontsize=1.5, ha="center", va="center"
         )
 
     @staticmethod
@@ -596,13 +596,13 @@ class GanttVisualization(core.Visualization):
                     
                     plot_ax.add_artist(rect)
 
-                # if colorationMethod == "user" or colorationMethod == "user_top_20":
-                #     self._annotate(rect, str(job["username"]))
+                if colorationMethod == "user" or colorationMethod == "user_top_20":
+                    self._annotate(rect, str(job["username"]))
                 # if colorationMethod == "dependency":
                 #     if job["dependency_chain_head"] != job["jobID"]:
                 #         self._annotate(rect, str(job["dependency_chain_head"]))
-                # if colorationMethod == "project" or colorationMethod == "partition":
-                #     self._annotate(rect, job["account_name"])
+                if colorationMethod == "project" or colorationMethod == "partition":
+                    self._annotate(rect, job["account_name"])
                 if colorationMethod == "exitstate" and str(job["failedNode"]) != 'nan':
                     self._rugplot_annotate(rect, str(job["failedNode"]))
             # except Exception as e:
@@ -699,6 +699,7 @@ class GanttVisualization(core.Visualization):
             edgeMethod="default",
             project_in_legend=True,
             double=False,
+            res_bounds2=None,
     ):
         """
         Build a Gantt chart from a provided DataFrame
@@ -753,17 +754,24 @@ class GanttVisualization(core.Visualization):
             )
         elif double == True:
             # Construct the Axes
-            fig, axe = matplotlib.pyplot.subplots(nrows=2, sharex=True, figzise=(12,8)) # TODO Fix the figsize here
+            fig, axe = matplotlib.pyplot.subplots(nrows=2, sharex=True, figsize=(12,8)) # TODO Fix the figsize here
+            self._adapt(df)  # extract the data required for the visualization
+            self._draw(
+                df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users, num_top_users,
+                partition_count, edgeMethod, axe[0]
+            )
+            axe[0].set(
+                xlim=(windowStartTime, windowFinishTime),
+                ylim=(res_bounds.inf - 1, res_bounds.sup + 2),
+            )
             self._draw(
                 df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users, num_top_users,
                 partition_count, edgeMethod, axe[1]
             )
-            # TODO Need to set the res_bounds for the axes individually
-            self._draw(
-                df, resvStart, resvExecTime, resvNodes, resvSet, colorationMethod, num_projects, num_users, num_top_users,
-                partition_count, edgeMethod, axe[2]
+            axe[1].set(
+                xlim=(windowStartTime, windowFinishTime),
+                ylim=(res_bounds2.inf - 1, res_bounds2.sup + 2),
             )
-
 
             
 
@@ -984,6 +992,7 @@ def plot_double_gantt_df( # TODO Needs plenty of work
         edgeMethod,
         project_in_legend,
         double=True,
+        res_bounds2=res_bounds2,
     )
     if val == 1:
         return
