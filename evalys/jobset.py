@@ -246,6 +246,8 @@ class JobSet(object):
         binned=False,
         simple=False,
         timeline=False,
+        clusterSize=None,
+        count2=None,
     ):
         """
         Create a gantt chart from the JobSet with more specific control over the chart.
@@ -284,10 +286,19 @@ class JobSet(object):
                 ax = axe[0]
             except TypeError:
                 ax=axe
+
+            # Choose the proper count of resources in order to accurately chart utilization for clusters with multiple non-contiguous blocks of nodes
+            if count2 != None:
+                resource_count = clusterSize + count2
+            elif count2 == None and clusterSize != None:
+                resource_count = clusterSize
+            else:
+                resource_count = self.MaxProcs
+
             if self.df["consumedEnergy"].unique().size <= 2:
                 vleg.plot_load(
                     self.utilisation,
-                    self.MaxProcs,
+                    resource_count,
                     legend_label="utilisation",
                     ax=ax,
                     normalize=normalize,
@@ -298,7 +309,7 @@ class JobSet(object):
             else:
                 vleg.plot_load(
                     self.utilisation,
-                    self.MaxProcs,
+                    resource_count,
                     legend_label="utilisation",
                     ax=ax,
                     normalize=normalize,
